@@ -77,7 +77,7 @@ function sanitizeRecoverySecret(value: string) {
 
 function validRecoverySecret(value: string) {
   const secret = value.trim();
-  return /^\d{4,8}$/.test(secret) || /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{6,8}$/.test(secret);
+  return /^\d{4,8}$/.test(secret) || /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{4,8}$/.test(secret);
 }
 
 function formatDate(locale: Locale, value?: string | null) {
