@@ -1,0 +1,47 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "merlin-public",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-07-27",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/download*"
+    ]
+  },
+  "routes": [
+    {
+      "pattern": "https://api-merlin.com/download",
+      "zone_name": "api-merlin.com"
+    },
+    {
+      "pattern": "https://api-merlin.com/download/",
+      "zone_name": "api-merlin.com"
+    },
+    {
+      "pattern": "https://api-merlin.com/download/*",
+      "zone_name": "api-merlin.com"
+    },
+    {
+      "pattern": "https://api-merlin.com/download-assets/*",
+      "zone_name": "api-merlin.com"
+    },
+    {
+      "pattern": "https://staging.api-merlin.com/download",
+      "zone_name": "api-merlin.com"
+    },
+    {
+      "pattern": "https://staging.api-merlin.com/download/",
+      "zone_name": "api-merlin.com"
+    },
+    {
+      "pattern": "https://staging.api-merlin.com/download/*",
+      "zone_name": "api-merlin.com"
+    },
+    {
+      "pattern": "https://staging.api-merlin.com/download-assets/*",
+      "zone_name": "api-merlin.com"
+    }
+  ]
+}
