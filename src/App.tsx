@@ -72,12 +72,11 @@ function canPurchaseAccess(billing: BillingState) {
 }
 
 function sanitizeRecoverySecret(value: string) {
-  return value.replace(/[^A-Za-z0-9]/g, "").slice(0, 8);
+  return value.replace(/\s/g, "").slice(0, 8);
 }
 
 function validRecoverySecret(value: string) {
-  const secret = value.trim();
-  return /^\d{4,8}$/.test(secret) || /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{4,8}$/.test(secret);
+  return /^\S{4,8}$/.test(value.trim());
 }
 
 function formatDate(locale: Locale, value?: string | null) {
