@@ -12,15 +12,7 @@
   },
   "routes": [
     {
-      "pattern": "https://api-merlin.com/download",
-      "zone_name": "api-merlin.com"
-    },
-    {
-      "pattern": "https://api-merlin.com/download/",
-      "zone_name": "api-merlin.com"
-    },
-    {
-      "pattern": "https://api-merlin.com/download/*",
+      "pattern": "https://api-merlin.com/download*",
       "zone_name": "api-merlin.com"
     },
     {
@@ -28,15 +20,7 @@
       "zone_name": "api-merlin.com"
     },
     {
-      "pattern": "https://staging.api-merlin.com/download",
-      "zone_name": "api-merlin.com"
-    },
-    {
-      "pattern": "https://staging.api-merlin.com/download/",
-      "zone_name": "api-merlin.com"
-    },
-    {
-      "pattern": "https://staging.api-merlin.com/download/*",
+      "pattern": "https://staging.api-merlin.com/download*",
       "zone_name": "api-merlin.com"
     },
     {
