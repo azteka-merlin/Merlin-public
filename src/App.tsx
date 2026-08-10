@@ -355,6 +355,8 @@ function Plans({ locale, t, billing, version }: { locale: Locale; t: TFn; billin
       setAccessOpen(true);
     } else if (access === "upgrade-cancel") {
       setModal({ title: t("upgradeCanceledTitle"), text: t("upgradeCanceledText"), tone: "warn" });
+    } else if (access === "me") {
+      setAccessOpen(true);
     }
   }, [locale]);
 
