@@ -3,7 +3,7 @@ export default {
     const url = new URL(request.url);
     const csp = [
       "default-src 'self'",
-      "script-src 'self' https://static.cloudflareinsights.com",
+      "script-src 'self' https://static.cloudflareinsights.com https://www.mercadopago.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",

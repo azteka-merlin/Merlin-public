@@ -18,14 +18,28 @@
     {
       "pattern": "https://api-merlin.com/download-assets/*",
       "zone_name": "api-merlin.com"
-    },
-    {
-      "pattern": "https://staging.api-merlin.com/download*",
-      "zone_name": "api-merlin.com"
-    },
-    {
-      "pattern": "https://staging.api-merlin.com/download-assets/*",
-      "zone_name": "api-merlin.com"
     }
-  ]
+  ],
+  "env": {
+    "staging": {
+      "name": "merlin-public-stage",
+      "assets": {
+        "directory": "./dist",
+        "binding": "ASSETS",
+        "run_worker_first": [
+          "/download*"
+        ]
+      },
+      "routes": [
+        {
+          "pattern": "https://staging.api-merlin.com/download*",
+          "zone_name": "api-merlin.com"
+        },
+        {
+          "pattern": "https://staging.api-merlin.com/download-assets/*",
+          "zone_name": "api-merlin.com"
+        }
+      ]
+    }
+  }
 }
