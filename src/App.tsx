@@ -138,7 +138,7 @@ type FeedbackItem = {
   title: string;
 };
 
-const STATIC_FEEDBACKS: FeedbackItem[] = [
+const FALLBACK_FEEDBACKS: FeedbackItem[] = [
   { id: "static-gris", src: `${ASSET_BASE}/assets/feedbacks/feedback-gris.jpeg`, title: "Feedback real" },
   { id: "static-007", src: `${ASSET_BASE}/assets/feedbacks/feedback-007.jpeg`, title: "Feedback real" },
   { id: "static-suporte", src: `${ASSET_BASE}/assets/feedbacks/feedback-suporte.jpeg`, title: "Feedback real" },
@@ -230,31 +230,33 @@ function MarketingCta({ purchaseAvailable, t, size = "md", className }: { purcha
 
 function Feedbacks({ purchaseAvailable, t }: { purchaseAvailable: boolean; t: TFn }) {
   const trackRef = useRef<HTMLDivElement>(null);
-  const [managedFeedbacks, setManagedFeedbacks] = useState<FeedbackItem[]>([]);
+  const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   const [open, setOpen] = useState<number | null>(null);
   const [active, setActive] = useState(0);
-  const feedbacks = useMemo(() => [...managedFeedbacks, ...STATIC_FEEDBACKS], [managedFeedbacks]);
   const scrollByCard = (dir: 1 | -1) => {
     const track = trackRef.current;
     const card = track?.querySelector<HTMLElement>("[data-card]");
     track?.scrollBy({ left: dir * ((card?.offsetWidth ?? 280) + 16), behavior: "smooth" });
   };
-  const move = useCallback((dir: 1 | -1) => setOpen((prev) => prev === null ? prev : (prev + dir + feedbacks.length) % feedbacks.length), [feedbacks.length]);
+  const move = useCallback((dir: 1 | -1) => setOpen((prev) => prev === null || !feedbacks.length ? prev : (prev + dir + feedbacks.length) % feedbacks.length), [feedbacks.length]);
   useEffect(() => {
     let cancelled = false;
     fetch("/api/public/feedbacks")
       .then((response) => response.ok ? response.json() : null)
       .then((payload) => {
         if (cancelled || !Array.isArray(payload?.feedbacks)) return;
-        setManagedFeedbacks(payload.feedbacks
+        const entries = payload.feedbacks
           .map((entry: { id?: number; imageUrl?: string; title?: string }) => ({
             id: `managed-${entry.id}`,
             src: String(entry.imageUrl || ""),
             title: String(entry.title || "Feedback real"),
           }))
-          .filter((entry: FeedbackItem) => entry.id !== "managed-undefined" && entry.src));
+          .filter((entry: FeedbackItem) => entry.id !== "managed-undefined" && entry.src);
+        setFeedbacks(entries.length ? entries : FALLBACK_FEEDBACKS);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!cancelled) setFeedbacks(FALLBACK_FEEDBACKS);
+      });
     return () => {
       cancelled = true;
     };
