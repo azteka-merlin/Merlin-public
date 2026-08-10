@@ -132,14 +132,20 @@ function accessStatusLabel(t: TFn, status?: string) {
   if (value === "none") return t("statusNone");
   return t("statusActive");
 }
-const FEEDBACKS = [
-  ["gris", "feedback-gris.jpeg"],
-  ["007", "feedback-007.jpeg"],
-  ["suporte", "feedback-suporte.jpeg"],
-  ["crimson-simples", "feedback-crimson-simples.jpeg"],
-  ["crimson-gameplay", "feedback-crimson-gameplay.jpeg"],
-  ["black-flag", "feedback-black-flag.jpeg"],
-] as const;
+type FeedbackItem = {
+  id: string;
+  src: string;
+  title: string;
+};
+
+const STATIC_FEEDBACKS: FeedbackItem[] = [
+  { id: "static-gris", src: `${ASSET_BASE}/assets/feedbacks/feedback-gris.jpeg`, title: "Feedback real" },
+  { id: "static-007", src: `${ASSET_BASE}/assets/feedbacks/feedback-007.jpeg`, title: "Feedback real" },
+  { id: "static-suporte", src: `${ASSET_BASE}/assets/feedbacks/feedback-suporte.jpeg`, title: "Feedback real" },
+  { id: "static-crimson-simples", src: `${ASSET_BASE}/assets/feedbacks/feedback-crimson-simples.jpeg`, title: "Feedback real" },
+  { id: "static-crimson-gameplay", src: `${ASSET_BASE}/assets/feedbacks/feedback-crimson-gameplay.jpeg`, title: "Feedback real" },
+  { id: "static-black-flag", src: `${ASSET_BASE}/assets/feedbacks/feedback-black-flag.jpeg`, title: "Feedback real" },
+];
 
 const COMPAT_CARDS = [
   { icon: `${ASSET_BASE}/assets/compatibility/icon-online.png`, title: "compatOnlineTitle", body: "compatOnlineBody", alt: "Controle de videogame com símbolo de conexão online" },
@@ -224,14 +230,35 @@ function MarketingCta({ purchaseAvailable, t, size = "md", className }: { purcha
 
 function Feedbacks({ purchaseAvailable, t }: { purchaseAvailable: boolean; t: TFn }) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const [managedFeedbacks, setManagedFeedbacks] = useState<FeedbackItem[]>([]);
   const [open, setOpen] = useState<number | null>(null);
   const [active, setActive] = useState(0);
+  const feedbacks = useMemo(() => [...managedFeedbacks, ...STATIC_FEEDBACKS], [managedFeedbacks]);
   const scrollByCard = (dir: 1 | -1) => {
     const track = trackRef.current;
     const card = track?.querySelector<HTMLElement>("[data-card]");
     track?.scrollBy({ left: dir * ((card?.offsetWidth ?? 280) + 16), behavior: "smooth" });
   };
-  const move = useCallback((dir: 1 | -1) => setOpen((prev) => prev === null ? prev : (prev + dir + FEEDBACKS.length) % FEEDBACKS.length), []);
+  const move = useCallback((dir: 1 | -1) => setOpen((prev) => prev === null ? prev : (prev + dir + feedbacks.length) % feedbacks.length), [feedbacks.length]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/public/feedbacks")
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        if (cancelled || !Array.isArray(payload?.feedbacks)) return;
+        setManagedFeedbacks(payload.feedbacks
+          .map((entry: { id?: number; imageUrl?: string; title?: string }) => ({
+            id: `managed-${entry.id}`,
+            src: String(entry.imageUrl || ""),
+            title: String(entry.title || "Feedback real"),
+          }))
+          .filter((entry: FeedbackItem) => entry.id !== "managed-undefined" && entry.src));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   useEffect(() => {
     if (open === null) return undefined;
     const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(null); if (event.key === "ArrowRight") move(1); if (event.key === "ArrowLeft") move(-1); };
@@ -242,12 +269,12 @@ function Feedbacks({ purchaseAvailable, t }: { purchaseAvailable: boolean; t: TF
 
   return <section id="feedbacks" className="section-y">
     <div className="container-merlin"><div className="flex items-end justify-between gap-6"><div><SectionTitle>{t("feedbacksTitle")}</SectionTitle><p className="mt-4 max-w-[520px] text-muted-foreground">{t("feedbacksBody")}</p></div><div className="hidden shrink-0 gap-2 sm:flex"><button aria-label="Anterior" onClick={() => scrollByCard(-1)} className="grid h-10 w-10 place-items-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">←</button><button aria-label="Próximo" onClick={() => scrollByCard(1)} className="grid h-10 w-10 place-items-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">→</button></div></div></div>
-    <div ref={trackRef} onScroll={() => { const track = trackRef.current; const card = track?.querySelector<HTMLElement>("[data-card]"); const w = (card?.offsetWidth ?? 280) + 16; setActive(Math.max(0, Math.min(FEEDBACKS.length - 1, Math.round((track?.scrollLeft ?? 0) / w)))); }} className="no-scrollbar mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-5 pb-2 sm:px-8 lg:px-10 xl:px-[max(64px,calc((100vw-1200px)/2+64px))]">
-      {FEEDBACKS.map(([id, file], index) => <button key={id} data-card type="button" aria-label={`Abrir feedback ${index + 1}`} onClick={() => setOpen(index)} className="w-[78%] shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-card text-left transition-colors hover:border-primary/40 sm:w-[45%] lg:w-[31%]"><div className="aspect-[4/5] bg-background/30 p-2"><img src={`${ASSET_BASE}/assets/feedbacks/${file}`} alt={`Feedback real ${index + 1}`} loading="lazy" decoding="async" className="h-full w-full rounded-xl object-contain" /></div></button>)}
+    <div ref={trackRef} onScroll={() => { const track = trackRef.current; const card = track?.querySelector<HTMLElement>("[data-card]"); const w = (card?.offsetWidth ?? 280) + 16; setActive(Math.max(0, Math.min(feedbacks.length - 1, Math.round((track?.scrollLeft ?? 0) / w)))); }} className="no-scrollbar mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-5 pb-2 sm:px-8 lg:px-10 xl:px-[max(64px,calc((100vw-1200px)/2+64px))]">
+      {feedbacks.map((feedback, index) => <button key={feedback.id} data-card type="button" aria-label={`Abrir feedback ${index + 1}`} onClick={() => setOpen(index)} className="w-[78%] shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-card text-left transition-colors hover:border-primary/40 sm:w-[45%] lg:w-[31%]"><div className="aspect-[4/5] bg-background/30 p-2"><img src={feedback.src} alt={`${feedback.title} ${index + 1}`} loading="lazy" decoding="async" className="h-full w-full rounded-xl object-contain" /></div></button>)}
     </div>
-    <div className="container-merlin mt-6 flex justify-center gap-1.5">{FEEDBACKS.map(([id], i) => <span key={id} className={cx("h-1.5 rounded-full transition-all", i === active ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30")} />)}</div>
+    <div className="container-merlin mt-6 flex justify-center gap-1.5">{feedbacks.map((feedback, i) => <span key={feedback.id} className={cx("h-1.5 rounded-full transition-all", i === active ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30")} />)}</div>
     <div className="container-merlin mt-20"><div className="mx-auto max-w-[720px] text-center"><h3 className="text-2xl font-bold sm:text-3xl">{t("feedbackSupportTitle")}</h3><p className="mt-4 text-muted-foreground">{t("feedbackSupportBody")}</p><div className="mt-8 flex justify-center"><MarketingCta purchaseAvailable={purchaseAvailable} t={t} size="lg" /></div></div></div>
-    {open !== null && <div role="dialog" aria-modal="true" aria-label={`Feedback ${open + 1}`} className="fixed inset-0 z-[60] flex items-center justify-center bg-background/90 p-4 backdrop-blur-sm" onClick={() => setOpen(null)}><div className="relative flex max-h-[92vh] w-full max-w-[820px] flex-col" onClick={(event) => event.stopPropagation()}><div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-primary/25 bg-card p-2"><img src={`${ASSET_BASE}/assets/feedbacks/${FEEDBACKS[open][1]}`} alt={`Feedback real ${open + 1}`} className="max-h-[78vh] w-auto max-w-full rounded-xl object-contain" /></div><div className="mt-4 flex items-center justify-between"><button type="button" onClick={() => move(-1)} className="grid h-11 w-11 place-items-center rounded-full border border-border text-muted-foreground hover:text-foreground">←</button><span className="text-sm text-muted-foreground">{open + 1} / {FEEDBACKS.length}</span><button type="button" onClick={() => move(1)} className="grid h-11 w-11 place-items-center rounded-full border border-border text-muted-foreground hover:text-foreground">→</button></div><button type="button" onClick={() => setOpen(null)} aria-label="Fechar" className="absolute -top-12 right-0 grid h-10 w-10 place-items-center rounded-full border border-border text-muted-foreground hover:text-foreground">×</button></div></div>}
+    {open !== null && feedbacks[open] && <div role="dialog" aria-modal="true" aria-label={`Feedback ${open + 1}`} className="fixed inset-0 z-[60] flex items-center justify-center bg-background/90 p-4 backdrop-blur-sm" onClick={() => setOpen(null)}><div className="relative flex max-h-[92vh] w-full max-w-[820px] flex-col" onClick={(event) => event.stopPropagation()}><div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-primary/25 bg-card p-2"><img src={feedbacks[open].src} alt={`${feedbacks[open].title} ${open + 1}`} className="max-h-[78vh] w-auto max-w-full rounded-xl object-contain" /></div><div className="mt-4 flex items-center justify-between"><button type="button" onClick={() => move(-1)} className="grid h-11 w-11 place-items-center rounded-full border border-border text-muted-foreground hover:text-foreground">←</button><span className="text-sm text-muted-foreground">{open + 1} / {feedbacks.length}</span><button type="button" onClick={() => move(1)} className="grid h-11 w-11 place-items-center rounded-full border border-border text-muted-foreground hover:text-foreground">→</button></div><button type="button" onClick={() => setOpen(null)} aria-label="Fechar" className="absolute -top-12 right-0 grid h-10 w-10 place-items-center rounded-full border border-border text-muted-foreground hover:text-foreground">×</button></div></div>}
   </section>;
 }
 
