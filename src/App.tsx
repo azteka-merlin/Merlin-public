@@ -14,7 +14,7 @@ type BillingState = {
   lifetimeEnabled: boolean;
   monthlyCardTrial: { enabled: boolean; days: number };
   paymentMethods: { card: boolean; pix: boolean; pixMonthly: boolean; pixLifetime: boolean };
-  prices: Record<PlanType, BillingPrice | null>;
+  prices: Record<PlanType, BillingPrice | null> & { pixLifetime: BillingPrice | null };
   loaded: boolean;
 };
 
@@ -61,7 +61,7 @@ const INITIAL_BILLING_STATE: BillingState = {
   lifetimeEnabled: false,
   monthlyCardTrial: { enabled: false, days: 30 },
   paymentMethods: { card: true, pix: false, pixMonthly: false, pixLifetime: false },
-  prices: { monthly: null, lifetime: null },
+  prices: { monthly: null, lifetime: null, pixLifetime: null },
   loaded: false,
 };
 
@@ -84,6 +84,7 @@ function parseBillingPayload(payload: any): BillingState {
     prices: {
       monthly: payload?.billing?.prices?.monthly || null,
       lifetime: payload?.billing?.prices?.lifetime || null,
+      pixLifetime: payload?.billing?.prices?.pixLifetime || null,
     },
     loaded: true,
   };
@@ -93,6 +94,30 @@ function planCanBeSold(billing: BillingState, plan: PlanType | null) {
   if (!billing.loaded || !billing.signupEnabled || !billing.billingEnabled || !plan) return false;
   if (plan === "monthly") return billing.monthlyEnabled && Boolean(billing.prices.monthly);
   return billing.lifetimeEnabled && Boolean(billing.prices.lifetime);
+}
+
+function getPaymentPrice(billing: BillingState, plan: PlanType | null, paymentMethod: PaymentMethod | null) {
+  if (plan === "monthly") return billing.prices.monthly;
+  if (plan === "lifetime" && paymentMethod === "pix") return billing.prices.pixLifetime || billing.prices.lifetime;
+  if (plan === "lifetime") return billing.prices.lifetime;
+  return null;
+}
+
+function priceAmountCents(price: BillingPrice | null) {
+  return Number(price?.amountCents) || 0;
+}
+
+function lifetimePixDiscountCents(prices: BillingState["prices"]) {
+  const cardAmount = priceAmountCents(prices.lifetime);
+  const pixAmount = priceAmountCents(prices.pixLifetime);
+  return cardAmount > 0 && pixAmount > 0 && pixAmount < cardAmount ? cardAmount - pixAmount : 0;
+}
+
+function formatCents(locale: Locale, amountCents: number, currency = "brl") {
+  return new Intl.NumberFormat(locale === "ptbr" ? "pt-BR" : locale === "de" ? "de-DE" : locale === "fr" ? "fr-FR" : locale === "es" ? "es-ES" : "en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+  }).format(amountCents / 100);
 }
 
 function getMercadoPagoDeviceId() {
@@ -280,10 +305,11 @@ function Feedbacks({ purchaseAvailable, t }: { purchaseAvailable: boolean; t: TF
   </section>;
 }
 
-function PlanCard({ title, price, period, description, note, cta, selected, featured, badge, disabled, onSelect, t }: { title: string; price: string; period: string; description: string; note?: string; cta: string; selected: boolean; featured?: boolean; badge?: string; disabled?: boolean; onSelect: () => void; t: TFn }) {
+function PlanCard({ title, price, period, priceNote, description, note, cta, selected, featured, badge, disabled, onSelect, t }: { title: string; price: string; period: string; priceNote?: string; description: string; note?: string; cta: string; selected: boolean; featured?: boolean; badge?: string; disabled?: boolean; onSelect: () => void; t: TFn }) {
   return <div className={cx("flex flex-col rounded-2xl border bg-card p-7 transition-colors sm:p-8", featured ? "border-primary/40" : "border-border", selected && "border-primary shadow-[var(--glow-soft)]", disabled && "opacity-50")}>
     <div className="flex items-center justify-between gap-3"><h3 className="text-xl font-bold">{title}</h3>{(badge || featured) && <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary">{badge || t("bestValue")}</span>}</div>
     <div className="mt-6 flex items-baseline gap-2"><span className="font-display text-4xl font-bold">{price}</span><span className="text-sm text-muted-foreground">{period}</span></div>
+    {priceNote && <p className="mt-2 text-sm font-medium text-muted-foreground">{priceNote}</p>}
     <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{description}</p>{note && <p className="mt-4 text-xs leading-relaxed text-muted-foreground/70">{note}</p>}
     <div className="mt-8 flex-1" /><Button size="lg" variant={featured ? "primary" : "outline"} className="w-full" disabled={disabled} onClick={onSelect}>{cta}</Button>
   </div>;
@@ -391,7 +417,7 @@ function Plans({ locale, t, billing, version }: { locale: Locale; t: TFn; billin
 
   useEffect(() => {
     if (billing.signupEnabled && billing.billingEnabled && mode === "register" && planCanBeSold(billing, plan)) window.setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
-  }, [plan, billing.signupEnabled, billing.billingEnabled, billing.monthlyEnabled, billing.lifetimeEnabled, billing.prices.monthly, billing.prices.lifetime, mode]);
+  }, [plan, billing.signupEnabled, billing.billingEnabled, billing.monthlyEnabled, billing.lifetimeEnabled, billing.prices.monthly, billing.prices.lifetime, billing.prices.pixLifetime, mode]);
 
   function resetPanel(nextMode: FlowMode) {
     setMode(nextMode); setErrors({}); setMessage(""); setSuccess(null); setPaymentResult(null); setPixOrder(null); setPending(null); setCooldown(0); setForm((value) => ({ ...value, code: "", recoveryPin: nextMode === "register" ? "" : value.recoveryPin, accepted: nextMode === "register" ? false : value.accepted }));
@@ -572,13 +598,17 @@ function Plans({ locale, t, billing, version }: { locale: Locale; t: TFn; billin
   const selectedPlanHasPix = pixAvailableForPlan(plan);
   const monthlyPrice = monthlyAvailable ? formatMoney(locale, billing.prices.monthly) : "";
   const lifetimePrice = lifetimeAvailable ? formatMoney(locale, billing.prices.lifetime) : "";
+  const lifetimePixPrice = lifetimeAvailable ? formatMoney(locale, billing.prices.pixLifetime || billing.prices.lifetime) : "";
+  const lifetimeDiscountCents = lifetimePixDiscountCents(billing.prices);
+  const lifetimeDiscount = lifetimeDiscountCents > 0 ? formatCents(locale, lifetimeDiscountCents, billing.prices.lifetime?.currency || billing.prices.pixLifetime?.currency || "brl") : "";
+  const selectedPlanPrice = plan ? formatMoney(locale, getPaymentPrice(billing, plan, paymentMethod)) : "";
   const showRegisterForm = mode === "register" && billing.signupEnabled && (freeSignupAvailable || (billing.billingEnabled && paidPlansAvailable && planCanBeSold(billing, plan)));
   const showUnavailableMessage = billing.loaded && (!billing.signupEnabled || (billing.billingEnabled && !paidPlansAvailable));
 
   return <section id="planos" className="section-y"><div className="container-merlin">
     <div className="mx-auto max-w-[760px] text-center"><SectionTitle center>{t("plansEntryTitle")}</SectionTitle><p className="mx-auto mt-4 max-w-[680px] text-muted-foreground">{freeSignupAvailable ? t("freeAccessBody") : t("plansEntryBody")}</p><ExistingAccessActions t={t} onRecover={() => resetPanel("recover")} onAccess={() => { setAccessSessionId(null); setAccessOpen(true); }} />{version && <p className="mt-3 text-xs text-muted-foreground/70">v{version}</p>}</div>
     {!billing.loaded ? <div className="mx-auto mt-12 h-44 max-w-[900px] animate-pulse rounded-2xl border border-border bg-card" /> : <>
-      {billing.signupEnabled && billing.billingEnabled && paidPlansAvailable && <div className={cx("mx-auto mt-12 grid gap-5", monthlyAvailable && lifetimeAvailable ? "max-w-[900px] md:grid-cols-2" : "max-w-[440px]")}>{monthlyAvailable && <PlanCard badge={billing.monthlyCardTrial.enabled ? t("trialDaysFree", { days: billing.monthlyCardTrial.days }) : undefined} title={t("monthlyTitle")} price={monthlyPrice} period={t("monthlyPeriod")} description={monthlyPixAvailable ? t("monthlyPixHint") : t("monthlyHint")} note={monthlyPixAvailable ? t("monthlyPixNote") : t("monthlyNote")} cta={t("monthlyCta")} selected={plan === "monthly"} onSelect={() => { setPlan("monthly"); setPaymentMethod(null); resetPanel("register"); }} t={t} />}{lifetimeAvailable && <PlanCard featured title={t("lifetimeTitle")} price={lifetimePrice} period={t("lifetimePeriod")} description={t("lifetimeHint")} note={lifetimePixAvailable ? t("lifetimePixNote") : undefined} cta={t("lifetimeCta")} selected={plan === "lifetime"} onSelect={() => { setPlan("lifetime"); setPaymentMethod(null); resetPanel("register"); }} t={t} />}</div>}
+      {billing.signupEnabled && billing.billingEnabled && paidPlansAvailable && <div className={cx("mx-auto mt-12 grid gap-5", monthlyAvailable && lifetimeAvailable ? "max-w-[900px] md:grid-cols-2" : "max-w-[440px]")}>{monthlyAvailable && <PlanCard badge={billing.monthlyCardTrial.enabled ? t("trialDaysFree", { days: billing.monthlyCardTrial.days }) : undefined} title={t("monthlyTitle")} price={monthlyPrice} period={t("monthlyPeriod")} description={monthlyPixAvailable ? t("monthlyPixHint") : t("monthlyHint")} note={monthlyPixAvailable ? t("monthlyPixNote") : t("monthlyNote")} cta={t("monthlyCta")} selected={plan === "monthly"} onSelect={() => { setPlan("monthly"); setPaymentMethod(null); resetPanel("register"); }} t={t} />}{lifetimeAvailable && <PlanCard featured title={t("lifetimeTitle")} price={lifetimeDiscount ? lifetimePixPrice : lifetimePrice} period={lifetimeDiscount ? t("priceInPix") : t("lifetimePeriod")} priceNote={lifetimeDiscount ? t("orPriceOnCard", { price: lifetimePrice }) : undefined} badge={lifetimeDiscount ? t("saveAmount", { amount: lifetimeDiscount }) : undefined} description={t("lifetimeHint")} note={lifetimePixAvailable ? t("lifetimePixNote") : undefined} cta={t("lifetimeCta")} selected={plan === "lifetime"} onSelect={() => { setPlan("lifetime"); setPaymentMethod(null); resetPanel("register"); }} t={t} />}</div>}
       {showUnavailableMessage && mode === "register" && <p className="mx-auto mt-10 max-w-[560px] text-center text-sm text-muted-foreground">{t("newAccessUnavailable")}</p>}
       <div ref={formRef} className={cx("mx-auto grid max-w-[660px] transition-all duration-500", showRegisterForm || mode !== "register" ? "mt-8 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0")}><div className="overflow-hidden"><div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
         {mode === "register" && showRegisterForm && <form className="space-y-6" onSubmit={submitRegister}>
@@ -587,13 +617,14 @@ function Plans({ locale, t, billing, version }: { locale: Locale; t: TFn; billin
             {billing.billingEnabled && plan && <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-border bg-background/50 px-4 py-3">
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">{t("selectedPlan")}</p>
-                <p className="truncate text-sm font-medium">{plan === "monthly" ? `${t("monthlyTitle")} • ${monthlyPrice}` : `${t("lifetimeTitle")} • ${lifetimePrice}`}</p>
+                <p className="truncate text-sm font-medium">{plan === "monthly" ? `${t("monthlyTitle")} • ${selectedPlanPrice || monthlyPrice}` : paymentMethod === "pix" && lifetimeDiscount ? `${t("lifetimeTitle")} • ${selectedPlanPrice} ${t("priceInPix")}` : paymentMethod === "card" && lifetimeDiscount ? `${t("lifetimeTitle")} • ${selectedPlanPrice} ${t("priceOnCard")}` : `${t("lifetimeTitle")} • ${selectedPlanPrice || lifetimePrice}`}</p>
+                {plan === "lifetime" && lifetimeDiscount && !paymentMethod && <p className="mt-1 text-xs text-muted-foreground">{t("orPriceOnCard", { price: lifetimePrice })}</p>}
               </div>
               <button type="button" onClick={() => { setPlan(null); setPaymentMethod(null); }} className="shrink-0 text-sm text-primary hover:underline">{t("change")}</button>
             </div>}
             {errors.plan && <p className="mt-2 text-xs text-destructive">{errors.plan}</p>}
           </div>
-          {billing.billingEnabled && selectedPlanHasPix && plan && <PaymentMethodSelector plan={plan} monthlyCardTrial={billing.monthlyCardTrial} paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} error={errors.paymentMethod} t={t} />}
+          {billing.billingEnabled && selectedPlanHasPix && plan && <PaymentMethodSelector plan={plan} locale={locale} prices={billing.prices} monthlyCardTrial={billing.monthlyCardTrial} paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} error={errors.paymentMethod} t={t} />}
           <FormField label={t("name")} placeholder={t("namePlaceholder")} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={errors.name} />
           <FormField label={t("email")} type="email" placeholder={t("emailPlaceholder")} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} error={errors.email} />
           <FormField label={t("recoveryPin")} type="password" autoComplete="new-password" placeholder={t("pinPlaceholder")} value={form.recoveryPin} onChange={(e) => setForm({ ...form, recoveryPin: sanitizeRecoverySecret(e.target.value) })} error={errors.recoveryPin} hint={t("pinHint")} />
@@ -670,13 +701,17 @@ function VerificationCodeInput({ label, value, onChange, error, autoFocus }: { l
   </div>;
 }
 
-function PaymentMethodSelector({ plan, monthlyCardTrial, paymentMethod, setPaymentMethod, error, t }: { plan: PlanType; monthlyCardTrial: BillingState["monthlyCardTrial"]; paymentMethod: PaymentMethod | null; setPaymentMethod: (value: PaymentMethod) => void; error?: string; t: TFn }) {
+function PaymentMethodSelector({ plan, locale, prices, monthlyCardTrial, paymentMethod, setPaymentMethod, error, t }: { plan: PlanType; locale: Locale; prices: BillingState["prices"]; monthlyCardTrial: BillingState["monthlyCardTrial"]; paymentMethod: PaymentMethod | null; setPaymentMethod: (value: PaymentMethod) => void; error?: string; t: TFn }) {
   const monthlyCardBody = monthlyCardTrial.enabled
     ? t("paymentCardMonthlyTrial", { days: monthlyCardTrial.days })
     : t("paymentCardMonthly");
-  const methods: Array<{ value: PaymentMethod; title: string; body: string }> = [
-    { value: "card", title: t("paymentCard"), body: plan === "monthly" ? monthlyCardBody : t("paymentCardLifetime") },
-    { value: "pix", title: t("paymentPix"), body: plan === "monthly" ? t("paymentPixMonthly") : t("paymentPixLifetime") },
+  const cardPrice = plan === "monthly" ? prices.monthly : prices.lifetime;
+  const pixPrice = plan === "monthly" ? prices.monthly : prices.pixLifetime || prices.lifetime;
+  const discountCents = plan === "lifetime" ? lifetimePixDiscountCents(prices) : 0;
+  const discount = discountCents > 0 ? formatCents(locale, discountCents, prices.lifetime?.currency || prices.pixLifetime?.currency || "brl") : "";
+  const methods: Array<{ value: PaymentMethod; title: string; body: string; badge?: string }> = [
+    { value: "card", title: `${t("paymentCard")} • ${formatMoney(locale, cardPrice)}`, body: plan === "monthly" ? monthlyCardBody : discount ? t("cardRegularPayment") : t("paymentCardLifetime") },
+    { value: "pix", title: `${t("paymentPix")} • ${formatMoney(locale, pixPrice)}`, body: plan === "monthly" ? t("paymentPixMonthly") : discount ? t("pixDiscountApplied", { amount: discount }) : t("paymentPixLifetime"), badge: discount ? t("bestPrice") : undefined },
   ];
 
   return <fieldset>
@@ -698,7 +733,10 @@ function PaymentMethodSelector({ plan, monthlyCardTrial, paymentMethod, setPayme
         >
           <div className="flex items-center justify-between gap-3">
             <span className="font-semibold">{method.title}</span>
-            <span aria-hidden className={cx("h-3.5 w-3.5 rounded-full border", selected ? "border-primary bg-primary shadow-[inset_0_0_0_3px_oklch(0.20_0.02_275)]" : "border-muted-foreground/40")} />
+            <span className="flex shrink-0 items-center gap-2">
+              {method.badge && <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-primary">{method.badge}</span>}
+              <span aria-hidden className={cx("h-3.5 w-3.5 rounded-full border", selected ? "border-primary bg-primary shadow-[inset_0_0_0_3px_oklch(0.20_0.02_275)]" : "border-muted-foreground/40")} />
+            </span>
           </div>
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{method.body}</p>
         </button>;
