@@ -4,3 +4,5 @@ dist
 .dev.vars
 .env
 .env.*
+tmp-*.png
+poc-reference.png

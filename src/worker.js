@@ -15,7 +15,12 @@ export default {
       "form-action 'self' https://checkout.stripe.com",
     ].join('; ');
 
-    if (url.pathname === '/download' || url.pathname === '/download/') {
+    if (
+      url.pathname === '/download' ||
+      url.pathname === '/download/' ||
+      url.pathname === '/meu-acesso' ||
+      url.pathname === '/meu-acesso/'
+    ) {
       const indexUrl = new URL('/index.html', url);
       const assetRequest = new Request(indexUrl.toString(), { method: 'GET', headers: request.headers });
       const response = await env.ASSETS.fetch(assetRequest);

@@ -7,7 +7,8 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "run_worker_first": [
-      "/download*"
+      "/download*",
+      "/meu-acesso*"
     ]
   },
   "routes": [
@@ -18,6 +19,10 @@
     {
       "pattern": "https://api-merlin.com/download-assets/*",
       "zone_name": "api-merlin.com"
+    },
+    {
+      "pattern": "https://api-merlin.com/meu-acesso*",
+      "zone_name": "api-merlin.com"
     }
   ],
   "env": {
@@ -27,7 +32,8 @@
         "directory": "./dist",
         "binding": "ASSETS",
         "run_worker_first": [
-          "/download*"
+          "/download*",
+          "/meu-acesso*"
         ]
       },
       "routes": [
@@ -37,6 +43,10 @@
         },
         {
           "pattern": "https://staging.api-merlin.com/download-assets/*",
+          "zone_name": "api-merlin.com"
+        },
+        {
+          "pattern": "https://staging.api-merlin.com/meu-acesso*",
           "zone_name": "api-merlin.com"
         }
       ]

@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@400;500;600&display=swap");
 @import "tailwindcss" source(none);
 @source "./**/*.{ts,tsx,html}";
 
@@ -115,3 +116,7 @@ section[id] { scroll-margin-top: 88px; }
 }
 .language-select option { background: #14111f; color: #fff; }
 .lightbox-open { overflow: hidden; }
+
+/* The plans section follows the standalone POC; the rest of the public site keeps its own visual system. */
+.plans-poc { --poc-display: "Sora", "Inter", ui-sans-serif, system-ui, sans-serif; font-family: "Inter", ui-sans-serif, system-ui, sans-serif; }
+.plans-poc-display { font-family: var(--poc-display); }
