@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, Clock, Zap } from "lucide-react";
+import { FaTiktok, FaTwitch, FaYoutube } from "react-icons/fa6";
 import { dictionaries, initialLocale, type Locale } from "./i18n";
 import {
   ChangeView,
@@ -440,6 +441,20 @@ type FeedbackItem = {
   id: string;
   src: string;
   title: string;
+};
+
+type Partner = {
+  id: number;
+  name: string;
+  imageUrl: string | null;
+  imageCropX: number | null;
+  imageCropY: number | null;
+  imageCropWidth: number | null;
+  imageCropHeight: number | null;
+  youtubeUrl: string | null;
+  tiktokUrl: string | null;
+  twitchUrl: string | null;
+  sortOrder: number;
 };
 
 const FALLBACK_FEEDBACKS: FeedbackItem[] = [
@@ -915,6 +930,100 @@ function Feedbacks({
           </div>
         </div>
       )}
+    </section>
+  );
+}
+
+const PARTNER_SOCIALS = [
+  { id: "youtube", label: "YouTube", Icon: FaYoutube },
+  { id: "tiktok", label: "TikTok", Icon: FaTiktok },
+  { id: "twitch", label: "Twitch", Icon: FaTwitch },
+] as const;
+
+function readPartnerCropArea(partner: Partner) {
+  const values = [partner.imageCropX, partner.imageCropY, partner.imageCropWidth, partner.imageCropHeight];
+  if (values.some((value) => typeof value !== "number") || !partner.imageCropWidth || !partner.imageCropHeight) return null;
+  if (partner.imageCropX! + partner.imageCropWidth > 100.0001 || partner.imageCropY! + partner.imageCropHeight > 100.0001) return null;
+  return { x: partner.imageCropX!, y: partner.imageCropY!, width: partner.imageCropWidth, height: partner.imageCropHeight };
+}
+
+function PartnerPhoto({ partner }: { partner: Partner }) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [layout, setLayout] = useState<React.CSSProperties | null>(null);
+  const crop = readPartnerCropArea(partner);
+  const updateLayout = useCallback(() => {
+    const frame = frameRef.current;
+    const image = imageRef.current;
+    if (!frame || !image || !crop || !image.naturalWidth || !image.naturalHeight) return;
+    const cropWidth = image.naturalWidth * (crop.width / 100);
+    const cropHeight = image.naturalHeight * (crop.height / 100);
+    const scale = Math.max(frame.clientWidth / cropWidth, frame.clientHeight / cropHeight);
+    setLayout({ width: image.naturalWidth * scale, height: image.naturalHeight * scale, left: -image.naturalWidth * (crop.x / 100) * scale, top: -image.naturalHeight * (crop.y / 100) * scale });
+  }, [crop]);
+  useEffect(() => {
+    if (!crop) return;
+    updateLayout();
+    window.addEventListener("resize", updateLayout);
+    return () => window.removeEventListener("resize", updateLayout);
+  }, [crop, updateLayout, partner.imageUrl]);
+  if (!partner.imageUrl) return <span className="font-display text-lg font-bold text-primary-foreground">{partner.name.slice(0, 2).toUpperCase()}</span>;
+  if (!crop) return <img src={partner.imageUrl} alt={partner.name} loading="lazy" decoding="async" className="h-full w-full rounded-full object-cover transition-transform duration-200 group-hover:scale-105" />;
+  return <div ref={frameRef} className="relative h-full w-full overflow-hidden rounded-full"><img ref={imageRef} src={partner.imageUrl} alt={partner.name} loading="lazy" decoding="async" onLoad={updateLayout} className="absolute max-w-none transition-transform duration-200 group-hover:scale-105" style={layout || { opacity: 0 }} /></div>;
+}
+
+function PartnersSection({ t }: { t: TFn }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const fitsDesktop = partners.length <= 6;
+  const scrollByCard = (direction: 1 | -1) => {
+    const track = trackRef.current;
+    const card = track?.querySelector<HTMLElement>("[data-partner-card]");
+    track?.scrollBy({ left: direction * ((card?.offsetWidth ?? 180) + 16), behavior: "smooth" });
+  };
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/public/partners")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (cancelled || !Array.isArray(payload?.partners)) return;
+        setPartners(payload.partners.filter((partner: Partner) => partner?.id && partner?.name));
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
+  if (!partners.length) return null;
+  return (
+    <section id="parceiros" className="relative overflow-hidden border-y border-border/70 bg-surface/70 py-14 sm:py-16" style={{
+      backgroundImage: `linear-gradient(180deg, rgba(11, 12, 21, 0.82), rgba(11, 12, 21, 0.7) 56%, rgba(11, 12, 21, 0.84)), url(${ASSET_BASE}/assets/partners/partners-ambient.png)`,
+      backgroundPosition: "center center",
+      backgroundRepeat: "no-repeat",
+      backgroundSize: "cover",
+    }}>
+      <div className="container-merlin relative">
+        <div className="relative flex justify-center">
+          <div className="max-w-2xl text-center">
+            <span aria-hidden className="mx-auto block h-2 w-2 rotate-45 bg-primary shadow-[0_0_18px_rgba(139,92,246,0.9)]" />
+            <h2 className="mt-4 font-display text-2xl font-bold sm:text-3xl">{t("partnersTitle")}</h2>
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">{t("partnersBody")}</p>
+          </div>
+          {partners.length > 6 && <div className="absolute right-0 top-1/2 hidden -translate-y-1/2 shrink-0 gap-2 sm:flex">
+            <button aria-label="Parceiro anterior" onClick={() => scrollByCard(-1)} className="grid h-10 w-10 place-items-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">←</button>
+            <button aria-label="Próximo parceiro" onClick={() => scrollByCard(1)} className="grid h-10 w-10 place-items-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">→</button>
+          </div>}
+        </div>
+      </div>
+      <div ref={trackRef} className={cx("no-scrollbar mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-5 pb-2 sm:mx-auto sm:max-w-[900px] sm:px-8", fitsDesktop && "sm:justify-center")}>
+        {partners.map((partner) => <article key={partner.id} data-partner-card className="group flex w-[44%] shrink-0 snap-start flex-col items-center text-center transition-transform duration-200 hover:-translate-y-0.5 sm:w-[136px]">
+          <div className="flex h-[106px] w-[106px] items-center justify-center overflow-hidden rounded-full border-2 border-primary/45 bg-primary/10 p-[3px] shadow-[0_0_20px_rgba(139,92,246,0.16)] sm:h-[114px] sm:w-[114px] lg:h-[121px] lg:w-[121px]"><PartnerPhoto partner={partner} /></div>
+          <h3 className="mt-4 w-full truncate text-[15px] font-semibold text-foreground sm:text-base">{partner.name}</h3>
+          <div className="mt-2.5 flex min-h-8 items-center justify-center gap-2">{PARTNER_SOCIALS.map(({ id, label, Icon }) => {
+            const url = partner[`${id}Url` as "youtubeUrl" | "tiktokUrl" | "twitchUrl"];
+            if (!url) return null;
+            return <a key={id} href={url} aria-label={`${partner.name} no ${label}`} target="_blank" rel="noreferrer" className="grid h-[35px] w-[35px] place-items-center rounded-full border border-border bg-background/50 text-[14px] text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/15 hover:text-foreground"><Icon aria-hidden /></a>;
+          })}</div>
+        </article>)}
+      </div>
     </section>
   );
 }
@@ -5094,6 +5203,7 @@ export function App() {
         <div className="bg-surface">
           <Feedbacks purchaseAvailable={purchaseAvailable} t={t} />
         </div>
+        <PartnersSection t={t} />
         <Plans locale={locale} t={t} billing={billing} version={version} />
         <section className="relative overflow-hidden section-y">
           <div

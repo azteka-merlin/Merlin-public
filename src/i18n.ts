@@ -49,6 +49,8 @@ export const en: Dict = {
   feedbackSupportTitle: "You are not left alone after purchase.",
   feedbackSupportBody:
     "Merlin customers also get access to Merlin's House, our official Discord for support, news, and community contact.",
+  partnersTitle: "Merlin partners",
+  partnersBody: "Merlin grows with those who believe in it. Our thanks to every creator who is part of this journey.",
   plansTitle: "Choose how to access Merlin",
   plansBody: "Choose the option that makes the most sense for you.",
   plansEntryTitle: "Choose how to enter Merlin",
@@ -343,6 +345,8 @@ export const ptbr: Dict = {
   feedbackSupportTitle: "Você não fica sozinho depois da compra.",
   feedbackSupportBody:
     "Quem adquire o Merlin também tem acesso à Casa do Merlin, nosso Discord oficial para suporte, novidades e contato com a comunidade.",
+  partnersTitle: "Parceiros do Merlin",
+  partnersBody: "O Merlin cresce com quem acredita nele. Nosso obrigado a cada criador que faz parte dessa jornada. 💜",
   plansTitle: "Escolha como acessar o Merlin",
   plansBody: "Escolha a opção que faz mais sentido pra você.",
   plansEntryTitle: "Escolha como entrar no Merlin",
