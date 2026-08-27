@@ -5115,7 +5115,7 @@ export function App() {
               <div className="relative aspect-[9/16] w-full overflow-hidden rounded-2xl border border-border bg-surface-2 shadow-[0_18px_70px_rgba(124,58,237,0.08)]">
                 <iframe
                   className="absolute inset-0 h-full w-full"
-                  src="https://www.youtube-nocookie.com/embed/QjFRHpB16DY?rel=0"
+                  src="https://www.youtube-nocookie.com/embed/VDDSgNpHqeo?rel=0"
                   title={t("videoIframeTitle")}
                   loading="lazy"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
