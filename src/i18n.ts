@@ -48,7 +48,7 @@ export const en: Dict = {
   feedbacksBody: "Real feedback from people already using Merlin.",
   feedbackSupportTitle: "You are not left alone after purchase.",
   feedbackSupportBody:
-    "Merlin customers also get access to Merlin's House, our official Discord for support, news, and community contact.",
+    "Merlin customers also get access to Merlin's House, our official WhatsApp support group for help, news, and community contact.",
   partnersTitle: "Merlin partners",
   partnersBody: "Merlin grows with those who believe in it. Our thanks to every creator who is part of this journey.",
   plansTitle: "Choose how to access Merlin",
@@ -344,7 +344,7 @@ export const ptbr: Dict = {
   feedbacksBody: "Feedbacks reais de pessoas que já usam o Merlin.",
   feedbackSupportTitle: "Você não fica sozinho depois da compra.",
   feedbackSupportBody:
-    "Quem adquire o Merlin também tem acesso à Casa do Merlin, nosso Discord oficial para suporte, novidades e contato com a comunidade.",
+    "Quem adquire o Merlin também tem acesso à Casa do Merlin, nosso grupo oficial de suporte no WhatsApp para ajuda, novidades e contato com a comunidade.",
   partnersTitle: "Parceiros do Merlin",
   partnersBody: "O Merlin cresce com quem acredita nele. Nosso obrigado a cada criador que faz parte dessa jornada. 💜",
   plansTitle: "Escolha como acessar o Merlin",
@@ -648,7 +648,7 @@ export const es: Dict = {
   feedbacksBody: "Opiniones reales de personas que ya usan Merlin.",
   feedbackSupportTitle: "No te quedas solo después de la compra.",
   feedbackSupportBody:
-    "Quienes adquieren Merlin también tienen acceso a Casa do Merlin, nuestro Discord oficial para soporte, novedades y contacto con la comunidad.",
+    "Quienes adquieren Merlin también tienen acceso a Casa do Merlin, nuestro grupo oficial de soporte en WhatsApp para ayuda, novedades y contacto con la comunidad.",
   plansTitle: "Elige cómo acceder a Merlin",
   plansBody: "Elige la opción que tenga más sentido para ti.",
   plansEntryTitle: "Elige c\u00f3mo entrar a Merlin",
@@ -814,7 +814,7 @@ export const fr: Dict = {
   feedbacksBody: "Avis réels de personnes qui utilisent déjà Merlin.",
   feedbackSupportTitle: "Vous n’êtes pas seul après l’achat.",
   feedbackSupportBody:
-    "Les clients Merlin ont aussi accès à Casa do Merlin, notre Discord officiel pour le support, les nouveautés et le contact avec la communauté.",
+    "Les clients Merlin ont aussi accès à Casa do Merlin, notre groupe de support officiel sur WhatsApp pour l’aide, les nouveautés et le contact avec la communauté.",
   plansTitle: "Choisissez comment accéder à Merlin",
   plansBody: "Choisissez l’option qui vous convient le mieux.",
   plansEntryTitle: "Choisissez comment entrer dans Merlin",
@@ -980,7 +980,7 @@ export const de: Dict = {
   feedbacksBody: "Echtes Feedback von Menschen, die Merlin bereits verwenden.",
   feedbackSupportTitle: "Nach dem Kauf bist du nicht allein.",
   feedbackSupportBody:
-    "Merlin-Kunden erhalten auch Zugang zur Casa do Merlin, unserem offiziellen Discord für Support, Neuigkeiten und Kontakt zur Community.",
+    "Merlin-Kunden erhalten auch Zugang zur Casa do Merlin, unserer offiziellen WhatsApp-Supportgruppe für Hilfe, Neuigkeiten und Kontakt zur Community.",
   plansTitle: "Wähle deinen Merlin-Zugang",
   plansBody: "Wähle die Option, die für dich am meisten Sinn ergibt.",
   plansEntryTitle: "W\u00e4hle, wie du Merlin nutzt",
