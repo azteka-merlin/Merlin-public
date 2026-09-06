@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { Button, cx } from "../ui";
+import { dictionaries } from "../i18n";
 import {
   POC_PRICES,
   POC_SCENARIOS,
@@ -29,6 +30,8 @@ import {
 type OperationResult = "success" | "pending" | "not_completed";
 type PixResult = "paid" | "pending" | "expired";
 type View = "overview" | "change" | "preview";
+type TFn = (key: string, vars?: Record<string, string | number>) => string;
+const demoT: TFn = (key) => dictionaries.ptbr[key] || dictionaries.en[key] || key;
 
 const tierCopy: Record<
   PocTier,
@@ -74,12 +77,12 @@ function planPrice(tier: PocTier, period: PocPeriod) {
   return POC_PRICES[tier][period];
 }
 
-function periodLabel(period?: PocPeriod) {
-  return period === "annual" ? "Anual" : "Mensal";
+function periodLabel(t: TFn, period?: PocPeriod) {
+  return period === "annual" ? t("accessPeriodAnnual") : t("accessPeriodMonthly");
 }
 
-function periodSuffix(period?: PocPeriod) {
-  return period === "annual" ? "/ ano" : "/ mês";
+function periodSuffix(t: TFn, period?: PocPeriod) {
+  return period === "annual" ? t("accessPeriodAnnualSuffix") : t("accessPeriodMonthlySuffix");
 }
 
 function currentTier(scenario: PocScenario) {
@@ -90,19 +93,19 @@ function isScheduled(status: PocStatus) {
   return status === "scheduled";
 }
 
-export function StatusPill({ status }: { status: PocStatus }) {
+export function StatusPill({ status, t }: { status: PocStatus; t: TFn }) {
   const labels: Partial<Record<PocStatus, string>> = {
-    active: "Acesso ativo",
-    legacy: "Acesso ativo",
-    pending: "Alteração processando",
-    failed: "Alteração não concluída",
-    scheduled: "Alteração agendada",
-    canceling: "Cancelamento agendado",
-    canceled: "Assinatura cancelada",
-    expired: "Acesso expirado",
-    lifetime: "Acesso permanente",
-    test: "Ambiente de teste",
-    manual: "Acesso manual",
+    active: t("activeAccessTitle"),
+    legacy: t("activeAccessTitle"),
+    pending: t("accessPocChangeProcessing"),
+    failed: t("accessPocChangeNotCompleted"),
+    scheduled: t("accessPocChangeScheduled"),
+    canceling: t("accessPocCancellationScheduled"),
+    canceled: t("accessPocSubscriptionCanceled"),
+    expired: t("accessPocAccessExpired"),
+    lifetime: t("accessPocPermanentAccess"),
+    test: t("accessPocTestEnvironment"),
+    manual: t("accessPocManualAccess"),
   };
   const tone =
     status === "failed" || status === "expired" || status === "error"
@@ -118,7 +121,7 @@ export function StatusPill({ status }: { status: PocStatus }) {
       )}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {labels[status] || "Atualizando"}
+      {labels[status] || t("accessPocUpdating")}
     </span>
   );
 }
@@ -327,7 +330,7 @@ export function MeuAcessoPoc() {
               Gerencie seu plano e suas informações de cobrança.
             </p>
           </div>
-          <StatusPill status={scenario.status} />
+          <StatusPill status={scenario.status} t={demoT} />
         </header>
 
         {notice && (

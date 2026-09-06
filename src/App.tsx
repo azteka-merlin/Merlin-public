@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Clock, Zap } from "lucide-react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { Check, ChevronDown, Clock, Menu, X, Zap } from "lucide-react";
 import { FaTiktok, FaTwitch, FaYoutube } from "react-icons/fa6";
 import { dictionaries, initialLocale, type Locale } from "./i18n";
 import {
@@ -525,6 +526,7 @@ function AppHeader({
 }) {
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const nav = [
     ["o-que-e", t("navWhat")],
     ["como-funciona", t("navHow")],
@@ -565,24 +567,101 @@ function AppHeader({
         scrolled ? "bg-background/70 backdrop-blur-md" : "bg-background/40",
       )}
     >
-      <div className="container-merlin flex h-[74px] items-center justify-between gap-4 sm:h-[82px]">
-        <a
-          href="#top"
-          className="flex min-w-0 items-center gap-3"
-          onClick={(e) => {
-            e.preventDefault();
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-        >
-          <img
-            src={`${ASSET_BASE}/assets/branding/merlin-logo.png`}
-            alt="Merlin"
-            className="h-11 w-11 shrink-0 object-contain sm:h-12 sm:w-12"
-          />
-          <span className="font-display truncate text-xl font-bold tracking-tight sm:text-2xl">
-            Merlin
-          </span>
-        </a>
+      <div className="container-merlin flex h-[74px] items-center justify-between gap-2 sm:h-[82px] lg:gap-4">
+        <div className="flex min-w-0 items-center gap-2 lg:contents">
+          <Dialog.Root open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <Dialog.Trigger asChild>
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-secondary/40 text-foreground transition-colors hover:border-primary/50 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:hidden"
+                aria-label={t("openMenu")}
+              >
+                <Menu aria-hidden="true" size={20} />
+              </button>
+            </Dialog.Trigger>
+            <Dialog.Portal>
+              <Dialog.Overlay className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm data-[state=closed]:animate-out data-[state=open]:animate-in" />
+              <Dialog.Content className="fixed inset-y-0 left-0 z-[70] flex w-[min(22rem,calc(100vw-1rem))] flex-col border-r border-border bg-surface px-5 pb-6 pt-5 shadow-2xl outline-none data-[state=closed]:animate-out data-[state=open]:animate-in sm:px-6">
+                <div className="flex items-center justify-between gap-4 border-b border-border pb-5">
+                  <Dialog.Title className="font-display text-xl font-bold tracking-tight">
+                    Merlin
+                  </Dialog.Title>
+                  <Dialog.Description className="sr-only">
+                    {t("menuDescription")}
+                  </Dialog.Description>
+                  <Dialog.Close asChild>
+                    <button
+                      type="button"
+                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground transition-colors hover:border-primary/50 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={t("closeMenu")}
+                    >
+                      <X aria-hidden="true" size={20} />
+                    </button>
+                  </Dialog.Close>
+                </div>
+                <nav className="mt-5 flex flex-col" aria-label={t("mainNavigation")}>
+                  {nav.map(([id, label]) => (
+                    <Dialog.Close key={id} asChild>
+                      <button
+                        type="button"
+                        onClick={() => scrollToId(id)}
+                        className={cx(
+                          "flex min-h-12 items-center border-b border-border/70 px-1 text-left text-base font-medium transition-colors hover:text-primary focus-visible:outline-none focus-visible:text-primary",
+                          active === id ? "text-primary" : "text-foreground",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    </Dialog.Close>
+                  ))}
+                  <Dialog.Close asChild>
+                    <a
+                      href={DOWNLOAD_URL}
+                      className="flex min-h-12 items-center border-b border-border/70 px-1 text-base font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:text-primary"
+                    >
+                      {t("downloadMerlin")}
+                    </a>
+                  </Dialog.Close>
+                </nav>
+                <div className="mt-auto border-t border-border pt-5">
+                  <label className="mb-2 block text-sm font-medium text-foreground" htmlFor="mobile-language">
+                    {t("language")}
+                  </label>
+                  <select
+                    id="mobile-language"
+                    className="language-select w-full"
+                    value={locale}
+                    aria-label={t("language")}
+                    onChange={(event) => setLocale(event.target.value as Locale)}
+                  >
+                    <option value="ptbr">PT</option>
+                    <option value="en">EN</option>
+                    <option value="es">ES</option>
+                    <option value="fr">FR</option>
+                    <option value="de">DE</option>
+                  </select>
+                </div>
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
+          <a
+            href="#top"
+            className="flex min-w-0 items-center gap-2 lg:gap-3"
+            onClick={(e) => {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          >
+            <img
+              src={`${ASSET_BASE}/assets/branding/merlin-logo.png`}
+              alt="Merlin"
+              className="h-9 w-9 shrink-0 object-contain sm:h-10 sm:w-10 lg:h-11 lg:w-11"
+            />
+            <span className="font-display truncate text-lg font-bold tracking-tight sm:text-xl lg:text-xl xl:text-2xl">
+              Merlin
+            </span>
+          </a>
+        </div>
         <nav className="hidden items-center gap-6 lg:flex xl:gap-8">
           {nav.map(([id, label]) => (
             <button
@@ -603,11 +682,11 @@ function AppHeader({
             {t("download")}
           </a>
         </nav>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <select
-            className="language-select hidden sm:block"
+            className="language-select hidden lg:block"
             value={locale}
-            aria-label="Language"
+            aria-label={t("language")}
             onChange={(event) => setLocale(event.target.value as Locale)}
           >
             <option value="ptbr">PT</option>
@@ -619,7 +698,7 @@ function AppHeader({
           <MarketingCta
             purchaseAvailable={purchaseAvailable}
             t={t}
-            className="shrink-0"
+            className="shrink-0 px-3 text-xs sm:px-5 sm:text-sm"
           />
         </div>
       </div>
@@ -798,14 +877,14 @@ function Feedbacks({
           </div>
           <div className="hidden shrink-0 gap-2 sm:flex">
             <button
-              aria-label="Anterior"
+              aria-label={t("previous")}
               onClick={() => scrollByCard(-1)}
               className="grid h-10 w-10 place-items-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
             >
               ←
             </button>
             <button
-              aria-label="Próximo"
+              aria-label={t("next")}
               onClick={() => scrollByCard(1)}
               className="grid h-10 w-10 place-items-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
             >
@@ -837,7 +916,7 @@ function Feedbacks({
             key={feedback.id}
             data-card
             type="button"
-            aria-label={`Abrir feedback ${index + 1}`}
+            aria-label={t("openFeedback", { number: index + 1 })}
             onClick={() => setOpen(index)}
             className="w-[78%] shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-card text-left transition-colors hover:border-primary/40 sm:w-[45%] lg:w-[31%]"
           >
@@ -885,7 +964,7 @@ function Feedbacks({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={`Feedback ${open + 1}`}
+          aria-label={t("feedbackDialog", { number: open + 1 })}
           className="fixed inset-0 z-[60] flex items-center justify-center bg-background/90 p-4 backdrop-blur-sm"
           onClick={() => setOpen(null)}
         >
@@ -922,7 +1001,7 @@ function Feedbacks({
             <button
               type="button"
               onClick={() => setOpen(null)}
-              aria-label="Fechar"
+              aria-label={t("close")}
               className="absolute -top-12 right-0 grid h-10 w-10 place-items-center rounded-full border border-border text-muted-foreground hover:text-foreground"
             >
               ×
@@ -1008,8 +1087,8 @@ function PartnersSection({ t }: { t: TFn }) {
             <p className="mt-2 text-sm text-muted-foreground sm:text-base">{t("partnersBody")}</p>
           </div>
           {partners.length > 6 && <div className="absolute right-0 top-1/2 hidden -translate-y-1/2 shrink-0 gap-2 sm:flex">
-            <button aria-label="Parceiro anterior" onClick={() => scrollByCard(-1)} className="grid h-10 w-10 place-items-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">←</button>
-            <button aria-label="Próximo parceiro" onClick={() => scrollByCard(1)} className="grid h-10 w-10 place-items-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">→</button>
+            <button aria-label={t("previousPartner")} onClick={() => scrollByCard(-1)} className="grid h-10 w-10 place-items-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">←</button>
+            <button aria-label={t("nextPartner")} onClick={() => scrollByCard(1)} className="grid h-10 w-10 place-items-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">→</button>
           </div>}
         </div>
       </div>
@@ -1020,7 +1099,7 @@ function PartnersSection({ t }: { t: TFn }) {
           <div className="mt-2.5 flex min-h-8 items-center justify-center gap-2">{PARTNER_SOCIALS.map(({ id, label, Icon }) => {
             const url = partner[`${id}Url` as "youtubeUrl" | "tiktokUrl" | "twitchUrl"];
             if (!url) return null;
-            return <a key={id} href={url} aria-label={`${partner.name} no ${label}`} target="_blank" rel="noreferrer" className="grid h-[35px] w-[35px] place-items-center rounded-full border border-border bg-background/50 text-[14px] text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/15 hover:text-foreground"><Icon aria-hidden /></a>;
+            return <a key={id} href={url} aria-label={t("partnerOnSocial", { partner: partner.name, social: label })} target="_blank" rel="noreferrer" className="grid h-[35px] w-[35px] place-items-center rounded-full border border-border bg-background/50 text-[14px] text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/15 hover:text-foreground"><Icon aria-hidden /></a>;
           })}</div>
         </article>)}
       </div>
@@ -3591,7 +3670,7 @@ function AccessModal({
       setErrors({ code: t("errorCode") });
       return;
     }
-    const accessWindow = window.open("", "_blank");
+    const accessWindow = window.open("/meu-acesso?pending=1", "_blank");
     setLoading(true);
     setErrors({});
     setMessage(t("loading"));
@@ -3609,9 +3688,7 @@ function AccessModal({
       if (accessWindow) {
         accessWindow.opener = null;
         accessWindow.location.href = "/meu-acesso";
-      } else {
-        window.open("/meu-acesso", "_blank", "noopener");
-      }
+      } else window.location.assign("/meu-acesso");
       onClose();
     } catch (error) {
       accessWindow?.close();
@@ -3638,7 +3715,7 @@ function AccessModal({
   }
 
   async function openSubscriptionPortal() {
-    const portal = window.open("", "_blank");
+    const portal = window.open("/meu-acesso?opening-portal=1", "_blank");
     setLoading(true);
     setMessage(t("loading"));
     try {
@@ -4270,6 +4347,7 @@ function AccessDetailsPoc({
   access,
   billing,
   locale,
+  t,
   onClose,
   onBackToPlans,
   onPortal,
@@ -4280,6 +4358,7 @@ function AccessDetailsPoc({
   access: NonNullable<AccessDetailsPayload["access"]>;
   billing: BillingState;
   locale: Locale;
+  t: TFn;
   onClose: () => void;
   onBackToPlans: () => void;
   onPortal: () => void;
@@ -4328,7 +4407,7 @@ function AccessDetailsPoc({
   );
   const scenario: PocScenario = {
     id: "real-access",
-    label: "Meu acesso",
+    label: t("accessPortalTitle"),
     tier,
     period,
     payment: access.subscription?.canManage ? "card" : "pix",
@@ -4391,7 +4470,7 @@ function AccessDetailsPoc({
       setError(
         cause instanceof Error
           ? cause.message
-          : "Não foi possível calcular a alteração.",
+          : t("accessPlanChangePreviewError"),
       );
     } finally {
       setBusy(false);
@@ -4421,7 +4500,7 @@ function AccessDetailsPoc({
       setError(
         cause instanceof Error
           ? cause.message
-          : "Não foi possível confirmar a alteração.",
+          : t("accessPlanChangeConfirmError"),
       );
       setView("change");
     } finally {
@@ -4442,7 +4521,7 @@ function AccessDetailsPoc({
       setError(
         cause instanceof Error
           ? cause.message
-          : "Não foi possível cancelar a alteração agendada.",
+          : t("accessPlanChangeCancelError"),
       );
     } finally {
       setBusy(false);
@@ -4462,7 +4541,7 @@ function AccessDetailsPoc({
       setError(
         cause instanceof Error
           ? cause.message
-          : "Não foi possível cancelar a alteração agendada.",
+          : t("accessPlanChangeCancelError"),
       );
     } finally {
       setBusy(false);
@@ -4478,19 +4557,19 @@ function AccessDetailsPoc({
               Merlin
             </p>
             <h3 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
-              Meu acesso
+              {t("accessPortalTitle")}
             </h3>
             <p className="mt-3 text-sm text-muted-foreground">
-              Gerencie seu plano e suas informações de cobrança.
+              {t("accessPortalBody")}
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <StatusPill status={status} />
+            <StatusPill status={status} t={t} />
             <button
               type="button"
               onClick={onClose}
               className="text-muted-foreground hover:text-foreground"
-              aria-label="Fechar"
+              aria-label={t("close")}
             >
               ×
             </button>
@@ -4540,19 +4619,19 @@ function AccessDetailsPoc({
               Merlin
             </p>
             <h3 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
-              Meu acesso
+              {t("accessPortalTitle")}
             </h3>
             <p className="mt-3 text-sm text-muted-foreground">
-              Gerencie seu plano e suas informações de cobrança.
+              {t("accessPortalBody")}
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <StatusPill status={status} />
+            <StatusPill status={status} t={t} />
             <button
               type="button"
               onClick={onClose}
               className="text-muted-foreground hover:text-foreground"
-              aria-label="Fechar"
+              aria-label={t("close")}
             >
               ×
             </button>
@@ -4561,7 +4640,7 @@ function AccessDetailsPoc({
         {error && (
           <StateBanner
             tone="error"
-            title="Não foi possível calcular a alteração"
+            title={t("accessPlanChangePreviewError")}
             body={error}
           />
         )}
@@ -4597,19 +4676,19 @@ function AccessDetailsPoc({
               Merlin
             </p>
             <h3 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
-              Meu acesso
+              {t("accessPortalTitle")}
             </h3>
             <p className="mt-3 text-sm text-muted-foreground">
-              Gerencie seu plano e suas informações de cobrança.
+              {t("accessPortalBody")}
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <StatusPill status={status} />
+            <StatusPill status={status} t={t} />
             <button
               type="button"
               onClick={onClose}
               className="text-muted-foreground hover:text-foreground"
-              aria-label="Fechar"
+              aria-label={t("close")}
             >
               ×
             </button>
@@ -4647,19 +4726,19 @@ function AccessDetailsPoc({
             Merlin
           </p>
           <h3 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
-            Meu acesso
+            {t("accessPortalTitle")}
           </h3>
           <p className="mt-3 text-sm text-muted-foreground">
-            Gerencie seu plano e suas informações de cobrança.
+            {t("accessPortalBody")}
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <StatusPill status={status} />
+          <StatusPill status={status} t={t} />
           <button
             type="button"
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground"
-            aria-label="Fechar"
+            aria-label={t("close")}
           >
             ×
           </button>
@@ -4668,7 +4747,7 @@ function AccessDetailsPoc({
       {error && (
         <StateBanner
           tone="error"
-          title="Não foi possível atualizar a alteração"
+          title={t("accessChangeUpdateError")}
           body={error}
         />
       )}
@@ -4785,15 +4864,21 @@ function StatusModalView({
 function MyAccessPage({
   billing,
   locale,
+  t,
 }: {
   billing: BillingState;
   locale: Locale;
+  t: TFn;
 }) {
   const [access, setAccess] = useState<AccessDetailsPayload | null>(null);
   const [csrfToken, setCsrfToken] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const isPendingWindow = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("pending") === "1" || params.get("opening-portal") === "1";
+  }, []);
 
   const refreshAccess = useCallback(async () => {
     const response = await fetch("/api/public/access/session", {
@@ -4802,20 +4887,21 @@ function MyAccessPage({
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload.success === false)
       throw new Error(
-        payload.error || "Não foi possível consultar seu acesso.",
+        payload.error || t("accessSessionError"),
       );
     setAccess(payload as AccessDetailsPayload);
     setCsrfToken(String(payload.csrfToken || ""));
     setError("");
-  }, []);
+  }, [t]);
 
   useEffect(() => {
+    if (isPendingWindow) return undefined;
     void refreshAccess()
       .catch((reason) =>
         setError(
           reason instanceof Error
             ? reason.message
-            : "Não foi possível consultar seu acesso.",
+            : t("accessSessionError"),
         ),
       )
       .finally(() => setLoading(false));
@@ -4829,14 +4915,14 @@ function MyAccessPage({
     document.addEventListener("visibilitychange", onVisibility);
     const params = new URLSearchParams(window.location.search);
     if (params.get("access") === "plan-change-return")
-      setNotice("A alteração está sendo atualizada.");
+      setNotice(t("accessPlanChangeUpdating"));
     if (params.get("access") === "plan-change-cancel")
-      setNotice("Nenhuma alteração foi aplicada.");
+      setNotice(t("accessPlanChangeCanceled"));
     return () => {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [refreshAccess]);
+  }, [isPendingWindow, refreshAccess, t]);
 
   async function postSession<T>(path: string, body: unknown): Promise<T> {
     const response = await fetch(path, {
@@ -4850,45 +4936,43 @@ function MyAccessPage({
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload.success === false)
       throw new Error(
-        payload.error || "Não foi possível atualizar seu acesso.",
+        payload.error || t("accessChangeUpdateError"),
       );
     return payload as T;
   }
 
   async function openPortal() {
-    const portal = window.open("", "_blank");
+    const portal = window.open("/meu-acesso?opening-portal=1", "_blank");
     try {
       const payload = await postSession<{ portalUrl?: string }>(
         "/api/public/access/session/billing-portal",
         {},
       );
       if (!payload.portalUrl)
-        throw new Error("Não foi possível abrir o gerenciamento de cobrança.");
+        throw new Error(t("accessPortalOpenError"));
       if (portal) {
         portal.opener = null;
         portal.location.href = payload.portalUrl;
-      } else {
-        window.open(payload.portalUrl, "_blank", "noopener");
-      }
+      } else window.location.assign(payload.portalUrl);
     } catch (reason) {
       portal?.close();
       throw reason;
     }
   }
 
-  if (loading)
+  if (loading || isPendingWindow)
     return (
       <div className="grid min-h-screen place-items-center bg-background px-5 text-sm text-muted-foreground">
-        Carregando seu acesso...
+        {t("accessSessionLoading")}
       </div>
     );
   if (error || !access?.access)
     return (
       <div className="grid min-h-screen place-items-center bg-background px-5">
         <div className="w-full max-w-md rounded-2xl border border-border bg-card p-7 text-center shadow-2xl">
-          <h1 className="text-2xl font-semibold">Consultar meu acesso</h1>
+          <h1 className="text-2xl font-semibold">{t("accessModalTitle")}</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            {error || "Sua sessão expirou. Consulte seu acesso novamente."}
+            {error || t("accessSessionExpired")}
           </p>
           <Button
             className="mt-7 w-full"
@@ -4896,7 +4980,7 @@ function MyAccessPage({
               window.location.href = "/download";
             }}
           >
-            Voltar para download
+            {t("accessReturn")}
           </Button>
         </div>
       </div>
@@ -4906,22 +4990,23 @@ function MyAccessPage({
     new URLSearchParams(window.location.search).get("access") ===
     "plan-change-return"
       ? access.access.planChange?.status === "pending_payment"
-        ? "A alteração está sendo atualizada."
+        ? t("accessPlanChangeUpdating")
         : access.access.planChange?.status === "not_completed"
-          ? "A alteração não foi concluída."
-          : "Alteração concluída."
+          ? t("accessPlanChangeNotCompleted")
+          : t("accessPlanChangeCompleted")
       : notice;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <main className="mx-auto max-w-[1040px] px-5 py-10 sm:px-8 sm:py-16">
         {returnNotice && (
-          <StateBanner tone="pending" title="Meu acesso" body={returnNotice} />
+          <StateBanner tone="pending" title={t("accessPortalTitle")} body={returnNotice} />
         )}
         <AccessDetailsPoc
           access={access.access}
           billing={billing}
           locale={locale}
+          t={t}
           onClose={() => {
             if (window.opener) window.close();
             else window.location.href = "/download";
@@ -4934,7 +5019,7 @@ function MyAccessPage({
               setError(
                 reason instanceof Error
                   ? reason.message
-                  : "Não foi possível abrir o gerenciamento de cobrança.",
+                  : t("accessPortalOpenError"),
               ),
             );
           }}
@@ -4960,7 +5045,7 @@ function MyAccessPage({
             const planChange = payload.planChange;
             if (planChange.status === "pending_payment") {
               if (!planChange.checkoutUrl)
-                throw new Error("Não foi possível iniciar a alteração.");
+                throw new Error(t("accessPlanChangeStartError"));
               window.location.assign(planChange.checkoutUrl);
             }
             if (
@@ -5072,7 +5157,7 @@ export function App() {
     window.location.pathname === "/meu-acesso" ||
     window.location.pathname === "/meu-acesso/"
   ) {
-    return <MyAccessPage billing={billing} locale={locale} />;
+    return <MyAccessPage billing={billing} locale={locale} t={t} />;
   }
 
   return (
