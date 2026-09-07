@@ -9,6 +9,7 @@ export const en: Dict = {
   navSecurity: "Safety",
   navFeedbacks: "Feedbacks",
   navPlans: "Plans",
+  navCatalog: "Catalog",
   openMenu: "Open menu",
   closeMenu: "Close menu",
   menuDescription: "Website navigation",
@@ -25,9 +26,16 @@ export const en: Dict = {
   heroWatch: "See how it works",
   whatTitle: "What is Merlin?",
   whatBody1:
-    "Merlin is a PC platform that gives access to a game library, including major releases and titles acquired and made available by the Merlin team itself.",
+    "Merlin is a PC platform that lets you access and activate games directly through your own Steam account, bringing Standard titles, Premium games, and major releases together in one place.",
   whatBody2:
-    "Everything through the launcher, in a simple and centralized way.",
+    "Everything is done through the Merlin launcher, in a simple and centralized way. For Premium games, the team acquires and prepares titles to make them available to subscribers.",
+  whyTitle: "Why does Merlin exist?",
+  whyBody1:
+    "Merlin began with a simple idea: no one should be left out of the game everyone is talking about just because a new release does not fit their budget at that moment.",
+  whyBody2:
+    "At first, the project focused especially on small creators and streamers. For those just starting out, missing a major release can mean losing content, audience, and opportunities, but we know not everyone can keep up with the price of every new game.",
+  whyBody3:
+    "Over time, we realized this problem was not limited to content creators. Many people simply want to get home, open the game they have been waiting months for, and enjoy it without every new experience putting such a heavy burden on their budget. That is how Merlin grew into what it is today: a platform for those who want to play more, keep up with major releases, and discover new games without every experience weighing so heavily on their wallet.",
   videoTitle: "See Merlin in action",
   videoBody:
     "A real example of how access to a game works through the platform.",
@@ -64,6 +72,7 @@ export const en: Dict = {
   previousPartner: "Previous partner",
   nextPartner: "Next partner",
   partnerOnSocial: "{{partner}} on {{social}}",
+  catalogTitle: "Game catalog", catalogSearch: "Search games", catalogAll: "All", catalogPremium: "Premium", catalogStandard: "Standard", catalogReviewing: "Under review", catalogAvailable: "Available", catalogStandardInfo: "Games are available on Merlin as soon as they launch, with unlimited access on every plan.", catalogPremiumInfo: "Games purchased by the Merlin team and made available by the platform. Activation and release rules vary by plan.", catalogReviewingInfo: "Click Verify to check this game's availability on Merlin.", catalogPlanRules: "Plan rules", catalogPlanRulesInfo: "Bronze has up to 3 Premium activations per month and releases within 7 days. Silver has unlimited Premium activations and releases within 5 days. Gold has unlimited Premium activations and priority releases within 48 hours.", catalogEmpty: "No games found.", catalogSearching: "Searching games...", catalogLoadMore: "Load more", catalogLoadingMore: "Loading...", catalogConsult: "Verify", catalogConsultUnavailable: "We could not confirm this game right now. Try again later.", catalogOpenSteam: "Open on Steam",
   plansTitle: "Choose how to access Merlin",
   plansBody: "Choose the option that makes the most sense for you.",
   plansEntryTitle: "Choose how to enter Merlin",
@@ -346,6 +355,7 @@ export const ptbr: Dict = {
   navSecurity: "Segurança",
   navFeedbacks: "Feedbacks",
   navPlans: "Planos",
+  navCatalog: "Catálogo",
   openMenu: "Abrir menu",
   closeMenu: "Fechar menu",
   menuDescription: "Navegação do site",
@@ -361,8 +371,12 @@ export const ptbr: Dict = {
   heroWatch: "Ver como funciona",
   whatTitle: "O que é o Merlin?",
   whatBody1:
-    "O Merlin é uma plataforma para PC que dá acesso a uma biblioteca de jogos, incluindo grandes lançamentos e títulos adquiridos e disponibilizados pela própria equipe Merlin.",
-  whatBody2: "Tudo através do launcher, de forma simples e centralizada.",
+    "O Merlin é uma plataforma para PC que permite acessar e ativar jogos diretamente pela sua própria Steam, reunindo títulos Padrão, jogos Premium e grandes lançamentos em um só lugar.",
+  whatBody2: "Tudo é feito através do launcher do Merlin, de forma simples e centralizada. Nos jogos Premium, a própria equipe adquire e prepara os títulos para disponibilizá-los aos assinantes.",
+  whyTitle: "Por que o Merlin existe?",
+  whyBody1: "O Merlin nasceu de uma ideia simples: ninguém deveria precisar ficar de fora daquele jogo que está todo mundo comentando só porque o preço do lançamento não cabe no bolso naquele momento.",
+  whyBody2: "No começo, o projeto tinha um foco especial em pequenos criadores e streamers. Para quem está começando, deixar de acompanhar um grande lançamento pode significar perder conteúdo, audiência e oportunidades, mas sabemos que nem todo mundo consegue acompanhar os valores cobrados por cada novo jogo.",
+  whyBody3: "Com o tempo, percebemos que esse problema não era só de quem cria conteúdo. Tem muita gente que simplesmente quer chegar em casa, abrir aquele jogo que estava esperando há meses e aproveitar a gameplay sem precisar comprometer uma parte enorme do orçamento toda vez que surge um lançamento. Foi aí que o Merlin cresceu e se tornou o que é hoje: uma plataforma pensada para quem quer jogar mais, acompanhar grandes lançamentos e descobrir novos jogos sem fazer cada nova experiência pesar tanto no bolso.",
   videoTitle: "Veja o Merlin em ação",
   videoBody:
     "Um exemplo real de como o acesso a um jogo funciona pela plataforma.",
@@ -398,6 +412,7 @@ export const ptbr: Dict = {
   previousPartner: "Parceiro anterior",
   nextPartner: "Próximo parceiro",
   partnerOnSocial: "{{partner}} no {{social}}",
+  catalogTitle: "Catálogo de jogos", catalogSearch: "Buscar jogo", catalogAll: "Todos", catalogPremium: "Premium", catalogStandard: "Padrão", catalogReviewing: "Em análise", catalogAvailable: "Disponível", catalogStandardInfo: "Jogos disponibilizados no Merlin assim que são lançados, com acesso ilimitado para todos os planos.", catalogPremiumInfo: "Jogos comprados diretamente pela equipe do Merlin e disponibilizados pela plataforma. As regras de ativação e a janela de lançamento variam conforme o plano.", catalogReviewingInfo: "Clique em Verificar para consultar a disponibilidade deste jogo no Merlin.", catalogPlanRules: "Regras por plano", catalogPlanRulesInfo: "Bronze: até 3 ativações Premium por mês e lançamentos em até 7 dias. Prata: ativações Premium ilimitadas e lançamentos em até 5 dias. Ouro: ativações Premium ilimitadas e lançamentos prioritários em até 48 horas.", catalogEmpty: "Nenhum jogo encontrado.", catalogSearching: "Buscando jogos...", catalogLoadMore: "Carregar mais", catalogLoadingMore: "Carregando...", catalogConsult: "Verificar", catalogConsultUnavailable: "Não conseguimos confirmar este jogo agora. Tente novamente mais tarde.", catalogOpenSteam: "Abrir na Steam",
   plansTitle: "Escolha como acessar o Merlin",
   plansBody: "Escolha a opção que faz mais sentido pra você.",
   plansEntryTitle: "Escolha como entrar no Merlin",
@@ -686,6 +701,7 @@ export const es: Dict = {
   navSecurity: "Seguridad",
   navFeedbacks: "Opiniones",
   navPlans: "Planes",
+  navCatalog: "Catálogo",
   openMenu: "Abrir menú",
   closeMenu: "Cerrar menú",
   menuDescription: "Navegación del sitio",
@@ -702,8 +718,12 @@ export const es: Dict = {
   heroWatch: "Ver cómo funciona",
   whatTitle: "¿Qué es Merlin?",
   whatBody1:
-    "Merlin es una plataforma para PC que da acceso a una biblioteca de juegos, incluidos grandes lanzamientos y títulos adquiridos y disponibilizados por el propio equipo Merlin.",
-  whatBody2: "Todo desde el launcher, de forma simple y centralizada.",
+    "Merlin es una plataforma para PC que permite acceder y activar juegos directamente desde tu propia Steam, reuniendo títulos Estándar, juegos Premium y grandes lanzamientos en un solo lugar.",
+  whatBody2: "Todo se hace a través del launcher de Merlin, de forma simple y centralizada. En los juegos Premium, el propio equipo adquiere y prepara los títulos para ponerlos a disposición de los suscriptores.",
+  whyTitle: "¿Por qué existe Merlin?",
+  whyBody1: "Merlin nació de una idea simple: nadie debería quedarse fuera de ese juego del que todos hablan solo porque el precio de lanzamiento no cabe en su presupuesto en ese momento.",
+  whyBody2: "Al principio, el proyecto tenía un enfoque especial en pequeños creadores y streamers. Para quienes están comenzando, perderse un gran lanzamiento puede significar perder contenido, audiencia y oportunidades, pero sabemos que no todos pueden seguir los precios de cada juego nuevo.",
+  whyBody3: "Con el tiempo, nos dimos cuenta de que este problema no era solo de quienes crean contenido. Mucha gente simplemente quiere llegar a casa, abrir ese juego que esperaba hace meses y disfrutarlo sin comprometer una parte enorme de su presupuesto cada vez que aparece un lanzamiento. Así Merlin creció y se convirtió en lo que es hoy: una plataforma pensada para quienes quieren jugar más, seguir los grandes lanzamientos y descubrir nuevos juegos sin que cada experiencia pese tanto en el bolsillo.",
   videoTitle: "Mira Merlin en acción",
   videoBody:
     "Un ejemplo real de cómo funciona el acceso a un juego en la plataforma.",
@@ -730,6 +750,7 @@ export const es: Dict = {
   feedbackSupportTitle: "No te quedas solo después de la compra.",
   feedbackSupportBody:
     "Quienes adquieren Merlin también tienen acceso a Casa do Merlin, nuestro grupo oficial de soporte en WhatsApp para ayuda, novedades y contacto con la comunidad.",
+  catalogTitle: "Catálogo de juegos", catalogSearch: "Buscar juego", catalogAll: "Todos", catalogPremium: "Premium", catalogStandard: "Estándar", catalogReviewing: "En análisis", catalogAvailable: "Disponible", catalogStandardInfo: "Juegos disponibles en Merlin en cuanto se lanzan, con acceso ilimitado para todos los planes.", catalogPremiumInfo: "Juegos comprados directamente por el equipo de Merlin y disponibles en la plataforma. Las reglas de activación y lanzamiento varían según el plan.", catalogReviewingInfo: "Haz clic en Verificar para consultar la disponibilidad de este juego en Merlin.", catalogPlanRules: "Reglas por plan", catalogPlanRulesInfo: "Bronce: hasta 3 activaciones Premium al mes y lanzamientos en hasta 7 días. Plata: activaciones Premium ilimitadas y lanzamientos en hasta 5 días. Oro: activaciones Premium ilimitadas y lanzamientos prioritarios en hasta 48 horas.", catalogEmpty: "No se encontraron juegos.", catalogSearching: "Buscando juegos...", catalogLoadMore: "Cargar más", catalogLoadingMore: "Cargando...", catalogConsult: "Verificar", catalogConsultUnavailable: "No pudimos confirmar este juego ahora. Inténtalo de nuevo más tarde.", catalogOpenSteam: "Abrir en Steam",
   partnersTitle: "Socios de Merlin",
   partnersBody:
     "Merlin crece junto a quienes creen en él. Nuestro agradecimiento a cada creador que forma parte de este camino.",
@@ -940,6 +961,7 @@ export const fr: Dict = {
   navSecurity: "Sécurité",
   navFeedbacks: "Avis",
   navPlans: "Offres",
+  navCatalog: "Catalogue",
   openMenu: "Ouvrir le menu",
   closeMenu: "Fermer le menu",
   menuDescription: "Navigation du site",
@@ -956,8 +978,12 @@ export const fr: Dict = {
   heroWatch: "Voir comment ça marche",
   whatTitle: "Qu’est-ce que Merlin ?",
   whatBody1:
-    "Merlin est une plateforme PC qui donne accès à une bibliothèque de jeux, avec de grands lancements et des titres acquis et mis à disposition par l’équipe Merlin elle-même.",
-  whatBody2: "Tout passe par le launcher, de façon simple et centralisée.",
+    "Merlin est une plateforme PC qui permet d’accéder à des jeux et de les activer directement via votre propre compte Steam, en réunissant des titres Standard, des jeux Premium et de grandes sorties au même endroit.",
+  whatBody2: "Tout se fait via le launcher Merlin, de manière simple et centralisée. Pour les jeux Premium, l’équipe acquiert et prépare les titres afin de les proposer aux abonnés.",
+  whyTitle: "Pourquoi Merlin existe-t-il ?",
+  whyBody1: "Merlin est né d’une idée simple : personne ne devrait devoir passer à côté du jeu dont tout le monde parle simplement parce que son prix de lancement ne rentre pas dans le budget à ce moment-là.",
+  whyBody2: "Au début, le projet visait particulièrement les petits créateurs et streamers. Pour celles et ceux qui commencent, manquer une grande sortie peut vouloir dire perdre du contenu, une audience et des opportunités, mais nous savons que tout le monde ne peut pas suivre le prix de chaque nouveau jeu.",
+  whyBody3: "Avec le temps, nous avons compris que ce problème ne concernait pas seulement les créateurs de contenu. Beaucoup veulent simplement rentrer chez eux, lancer le jeu qu’ils attendent depuis des mois et en profiter sans que chaque sortie pèse lourdement sur leur budget. C’est ainsi que Merlin a grandi pour devenir ce qu’il est aujourd’hui : une plateforme pensée pour jouer davantage, suivre les grandes sorties et découvrir de nouveaux jeux sans que chaque expérience ne pèse autant sur le portefeuille.",
   videoTitle: "Voir Merlin en action",
   videoBody:
     "Un exemple réel du fonctionnement de l’accès à un jeu via la plateforme.",
@@ -984,6 +1010,7 @@ export const fr: Dict = {
   feedbackSupportTitle: "Vous n’êtes pas seul après l’achat.",
   feedbackSupportBody:
     "Les clients Merlin ont aussi accès à Casa do Merlin, notre groupe de support officiel sur WhatsApp pour l’aide, les nouveautés et le contact avec la communauté.",
+  catalogTitle: "Catalogue de jeux", catalogSearch: "Rechercher un jeu", catalogAll: "Tous", catalogPremium: "Premium", catalogStandard: "Standard", catalogReviewing: "En cours d’analyse", catalogAvailable: "Disponible", catalogStandardInfo: "Jeux disponibles sur Merlin dès leur sortie, avec un accès illimité pour toutes les offres.", catalogPremiumInfo: "Jeux achetés directement par l’équipe Merlin et proposés sur la plateforme. Les règles d’activation et de sortie varient selon l’offre.", catalogReviewingInfo: "Cliquez sur Vérifier pour consulter la disponibilité de ce jeu sur Merlin.", catalogPlanRules: "Règles par offre", catalogPlanRulesInfo: "Bronze : jusqu’à 3 activations Premium par mois et sorties sous 7 jours. Argent : activations Premium illimitées et sorties sous 5 jours. Or : activations Premium illimitées et sorties prioritaires sous 48 heures.", catalogEmpty: "Aucun jeu trouvé.", catalogSearching: "Recherche de jeux...", catalogLoadMore: "Charger plus", catalogLoadingMore: "Chargement...", catalogConsult: "Vérifier", catalogConsultUnavailable: "Nous ne pouvons pas confirmer ce jeu pour le moment. Réessayez plus tard.", catalogOpenSteam: "Ouvrir dans Steam",
   partnersTitle: "Partenaires de Merlin",
   partnersBody:
     "Merlin grandit avec ceux qui croient en lui. Merci à chaque créateur qui fait partie de cette aventure.",
@@ -1194,6 +1221,7 @@ export const de: Dict = {
   navSecurity: "Sicherheit",
   navFeedbacks: "Feedback",
   navPlans: "Pläne",
+  navCatalog: "Katalog",
   openMenu: "Menü öffnen",
   closeMenu: "Menü schließen",
   menuDescription: "Website-Navigation",
@@ -1210,8 +1238,12 @@ export const de: Dict = {
   heroWatch: "So funktioniert es",
   whatTitle: "Was ist Merlin?",
   whatBody1:
-    "Merlin ist eine PC-Plattform, die Zugriff auf eine Spielebibliothek bietet, einschließlich großer Releases und Titel, die vom Merlin-Team selbst erworben und bereitgestellt werden.",
-  whatBody2: "Alles über den Launcher, einfach und zentralisiert.",
+    "Merlin ist eine PC-Plattform, über die du Spiele direkt mit deinem eigenen Steam-Konto nutzen und aktivieren kannst. Sie vereint Standardtitel, Premium-Spiele und große Neuerscheinungen an einem Ort.",
+  whatBody2: "Alles läuft einfach und zentral über den Merlin-Launcher. Bei Premium-Spielen erwirbt und bereitet das Team die Titel vor, um sie Abonnenten bereitzustellen.",
+  whyTitle: "Warum gibt es Merlin?",
+  whyBody1: "Merlin entstand aus einer einfachen Idee: Niemand sollte bei dem Spiel, über das alle sprechen, außen vor bleiben müssen, nur weil der Preis einer Neuveröffentlichung gerade nicht ins Budget passt.",
+  whyBody2: "Am Anfang richtete sich das Projekt besonders an kleinere Creator und Streamer. Wer gerade anfängt, kann durch das Verpassen eines großen Releases Inhalte, Reichweite und Chancen verlieren. Gleichzeitig wissen wir, dass nicht jeder bei jedem neuen Spiel die Preise mitgehen kann.",
+  whyBody3: "Mit der Zeit wurde klar, dass dieses Problem nicht nur Content Creator betrifft. Viele möchten einfach nach Hause kommen, das Spiel starten, auf das sie seit Monaten warten, und es genießen, ohne dass jede Neuerscheinung einen großen Teil des Budgets beansprucht. So ist Merlin zu dem geworden, was es heute ist: eine Plattform für Menschen, die mehr spielen, große Releases verfolgen und neue Spiele entdecken möchten, ohne dass jede Erfahrung so schwer ins Gewicht fällt.",
   videoTitle: "Merlin in Aktion",
   videoBody:
     "Ein echtes Beispiel dafür, wie der Zugriff auf ein Spiel über die Plattform funktioniert.",
@@ -1238,6 +1270,7 @@ export const de: Dict = {
   feedbackSupportTitle: "Nach dem Kauf bist du nicht allein.",
   feedbackSupportBody:
     "Merlin-Kunden erhalten auch Zugang zur Casa do Merlin, unserer offiziellen WhatsApp-Supportgruppe für Hilfe, Neuigkeiten und Kontakt zur Community.",
+  catalogTitle: "Spielekatalog", catalogSearch: "Spiel suchen", catalogAll: "Alle", catalogPremium: "Premium", catalogStandard: "Standard", catalogReviewing: "In Prüfung", catalogAvailable: "Verfügbar", catalogStandardInfo: "Spiele sind in Merlin verfügbar, sobald sie erscheinen, mit unbegrenztem Zugang in allen Plänen.", catalogPremiumInfo: "Spiele, die direkt vom Merlin-Team gekauft und über die Plattform bereitgestellt werden. Aktivierungs- und Veröffentlichungsregeln unterscheiden sich je nach Plan.", catalogReviewingInfo: "Klicke auf Prüfen, um die Verfügbarkeit dieses Spiels in Merlin zu prüfen.", catalogPlanRules: "Planregeln", catalogPlanRulesInfo: "Bronze: bis zu 3 Premium-Aktivierungen pro Monat und Veröffentlichungen innerhalb von 7 Tagen. Silber: unbegrenzte Premium-Aktivierungen und Veröffentlichungen innerhalb von 5 Tagen. Gold: unbegrenzte Premium-Aktivierungen und priorisierte Veröffentlichungen innerhalb von 48 Stunden.", catalogEmpty: "Keine Spiele gefunden.", catalogSearching: "Spiele werden gesucht...", catalogLoadMore: "Mehr laden", catalogLoadingMore: "Wird geladen...", catalogConsult: "Prüfen", catalogConsultUnavailable: "Dieses Spiel kann gerade nicht bestätigt werden. Bitte später erneut versuchen.", catalogOpenSteam: "Auf Steam öffnen",
   partnersTitle: "Merlin-Partner",
   partnersBody:
     "Merlin wächst mit allen, die daran glauben. Unser Dank gilt jedem Creator, der Teil dieser Reise ist.",

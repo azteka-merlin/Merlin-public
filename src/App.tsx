@@ -3,6 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Check, ChevronDown, Clock, Menu, X, Zap } from "lucide-react";
 import { FaTiktok, FaTwitch, FaYoutube } from "react-icons/fa6";
 import { dictionaries, initialLocale, type Locale } from "./i18n";
+import { CatalogPage } from "./CatalogPage";
 import {
   ChangeView,
   Overview,
@@ -534,6 +535,14 @@ function AppHeader({
     ["feedbacks", t("navFeedbacks")],
     ["planos", t("navPlans")],
   ];
+  const onLandingPage = window.location.pathname === "/download" || window.location.pathname === "/download/" || window.location.pathname === "/";
+  const goToSection = (id: string) => {
+    if (!onLandingPage) {
+      window.location.href = `/download#${id}`;
+      return;
+    }
+    scrollToId(id);
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -604,7 +613,7 @@ function AppHeader({
                     <Dialog.Close key={id} asChild>
                       <button
                         type="button"
-                        onClick={() => scrollToId(id)}
+                        onClick={() => goToSection(id)}
                         className={cx(
                           "flex min-h-12 items-center border-b border-border/70 px-1 text-left text-base font-medium transition-colors hover:text-primary focus-visible:outline-none focus-visible:text-primary",
                           active === id ? "text-primary" : "text-foreground",
@@ -614,6 +623,11 @@ function AppHeader({
                       </button>
                     </Dialog.Close>
                   ))}
+                  <Dialog.Close asChild>
+                    <a href="/catalogo" className="flex min-h-12 items-center border-b border-border/70 px-1 text-base font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:text-primary">
+                      {t("navCatalog")}
+                    </a>
+                  </Dialog.Close>
                   <Dialog.Close asChild>
                     <a
                       href={DOWNLOAD_URL}
@@ -649,7 +663,8 @@ function AppHeader({
             className="flex min-w-0 items-center gap-2 lg:gap-3"
             onClick={(e) => {
               e.preventDefault();
-              window.scrollTo({ top: 0, behavior: "smooth" });
+              if (onLandingPage) window.scrollTo({ top: 0, behavior: "smooth" });
+              else window.location.href = "/download#top";
             }}
           >
             <img
@@ -666,7 +681,7 @@ function AppHeader({
           {nav.map(([id, label]) => (
             <button
               key={id}
-              onClick={() => scrollToId(id)}
+              onClick={() => goToSection(id)}
               className={cx(
                 "cursor-pointer whitespace-nowrap text-sm transition-colors duration-200 hover:text-primary",
                 active === id ? "text-foreground" : "text-muted-foreground",
@@ -675,6 +690,9 @@ function AppHeader({
               {label}
             </button>
           ))}
+          <a href="/catalogo" className={cx("whitespace-nowrap text-sm transition-colors duration-200 hover:text-primary", window.location.pathname.startsWith("/catalogo") ? "text-foreground" : "text-muted-foreground")}>
+            {t("navCatalog")}
+          </a>
           <a
             href={DOWNLOAD_URL}
             className="whitespace-nowrap text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
@@ -5159,6 +5177,9 @@ export function App() {
   ) {
     return <MyAccessPage billing={billing} locale={locale} t={t} />;
   }
+  if (window.location.pathname === "/catalogo" || window.location.pathname === "/catalogo/") {
+    return <div className="min-h-screen bg-background"><AppHeader purchaseAvailable={purchaseAvailable} locale={locale} setLocale={setLocale} t={t} /><CatalogPage t={t} /></div>;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -5187,6 +5208,18 @@ export function App() {
               <p className="mt-5 text-base leading-relaxed text-foreground/80 sm:text-lg">
                 {t("whatBody2")}
               </p>
+            </div>
+          </div>
+        </section>
+        <section className="section-y">
+          <div className="container-merlin">
+            <div className="max-w-[760px]">
+              <SectionTitle>{t("whyTitle")}</SectionTitle>
+              <div className="mt-6 space-y-5 text-base leading-relaxed text-muted-foreground sm:text-lg">
+                <p>{t("whyBody1")}</p>
+                <p>{t("whyBody2")}</p>
+                <p>{t("whyBody3")}</p>
+              </div>
             </div>
           </div>
         </section>

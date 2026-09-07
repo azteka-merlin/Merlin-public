@@ -5,7 +5,7 @@ export default {
       "default-src 'self'",
       "script-src 'self' https://static.cloudflareinsights.com https://www.mercadopago.com",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
+      "img-src 'self' data: blob: https://shared.akamai.steamstatic.com https://shared.fastly.steamstatic.com https://cdn.cloudflare.steamstatic.com https://generator.ryuu.lol https://depotbox.org",
       "font-src 'self' data:",
       "connect-src 'self'",
       "frame-src https://www.youtube-nocookie.com",
@@ -19,7 +19,9 @@ export default {
       url.pathname === '/download' ||
       url.pathname === '/download/' ||
       url.pathname === '/meu-acesso' ||
-      url.pathname === '/meu-acesso/'
+      url.pathname === '/meu-acesso/' ||
+      url.pathname === '/catalogo' ||
+      url.pathname === '/catalogo/'
     ) {
       const indexUrl = new URL('/index.html', url);
       const assetRequest = new Request(indexUrl.toString(), { method: 'GET', headers: request.headers });
