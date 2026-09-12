@@ -3954,6 +3954,7 @@ function AccessModal({
             access={current}
             billing={billing}
             locale={locale}
+            t={t}
             onClose={onClose}
             onBackToPlans={onBackToPlans}
             onPortal={openSubscriptionPortal}
