@@ -633,6 +633,7 @@ export function Overview({
   scenario,
   tier,
   period,
+  t = demoT,
   cardEnding,
   canChange,
   flagOff,
@@ -645,6 +646,7 @@ export function Overview({
   scenario: PocScenario;
   tier: PocTier;
   period: PocPeriod;
+  t?: TFn;
   cardEnding: string;
   canChange: boolean;
   flagOff: boolean;
@@ -672,7 +674,7 @@ export function Overview({
                   : manual
                     ? "Acesso manual"
                     : flagOff
-                      ? periodLabel(period)
+                      ? periodLabel(t, period)
                       : tierCopy[tier].name}
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -680,7 +682,7 @@ export function Overview({
                   ? "Vitalício"
                   : test || manual
                     ? "Sem assinatura recorrente"
-                    : periodLabel(period)}
+                    : periodLabel(t, period)}
               </p>
             </div>
           </div>
@@ -694,7 +696,7 @@ export function Overview({
               </p>
               {!permanent && (
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {periodSuffix(period)}
+                  {periodSuffix(t, period)}
                 </p>
               )}
             </div>
@@ -731,7 +733,7 @@ export function Overview({
               passará para{" "}
               <strong>
                 {tierCopy[scenario.pendingTarget.tier].name}{" "}
-                {periodLabel(scenario.pendingTarget.period).toLowerCase()}
+                {periodLabel(t, scenario.pendingTarget.period).toLowerCase()}
               </strong>
               .
             </p>
@@ -823,6 +825,7 @@ export function ChangeView({
   scenario,
   tier,
   period,
+  t = demoT,
   flagOff,
   target,
   onBack,
@@ -835,6 +838,7 @@ export function ChangeView({
   scenario: PocScenario;
   tier: PocTier;
   period: PocPeriod;
+  t?: TFn;
   flagOff: boolean;
   target: { tier: PocTier; period: PocPeriod } | null;
   onBack: () => void;
@@ -879,7 +883,7 @@ export function ChangeView({
                 onTarget({ tier: target?.tier || tier, period: item })
               }
             >
-              {periodLabel(item)}
+              {periodLabel(t, item)}
             </button>
           ))}
         </div>
@@ -925,13 +929,13 @@ export function ChangeView({
                   </div>
                   <h3 className="mt-5 text-lg font-semibold">
                     {flagOff
-                      ? periodLabel(activePeriod)
+                      ? periodLabel(t, activePeriod)
                       : tierCopy[candidate].name}
                   </h3>
                   <p className="mt-2 text-2xl font-semibold tabular-nums">
                     {price === null ? "Indisponível" : money(price)}
                     <span className="ml-1 text-xs font-normal text-muted-foreground">
-                      {periodSuffix(activePeriod)}
+                      {periodSuffix(t, activePeriod)}
                     </span>
                   </p>
                   <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
@@ -959,6 +963,7 @@ export function PreviewView({
   scenario,
   tier,
   period,
+  t = demoT,
   target,
   dueNow,
   isDowngrade,
@@ -972,6 +977,7 @@ export function PreviewView({
   scenario: PocScenario;
   tier: PocTier;
   period: PocPeriod;
+  t?: TFn;
   target: { tier: PocTier; period: PocPeriod } | null;
   dueNow: number;
   isDowngrade: boolean;
@@ -1023,11 +1029,11 @@ export function PreviewView({
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
               <PreviewStat
                 label="Plano atual"
-                value={`${tierCopy[tier].name} ${periodLabel(period).toLowerCase()}`}
+                value={`${tierCopy[tier].name} ${periodLabel(t, period).toLowerCase()}`}
               />
               <PreviewStat
                 label="Novo plano"
-                value={`${tierCopy[target.tier].name} ${periodLabel(target.period).toLowerCase()}`}
+                value={`${tierCopy[target.tier].name} ${periodLabel(t, target.period).toLowerCase()}`}
               />
               {!isScheduledChange && (
                 <PreviewStat label="Você paga agora" value={money(dueNow)} />
@@ -1045,7 +1051,7 @@ export function PreviewView({
                 </strong>
                 . Depois disso, você passa para {tierCopy[target.tier].name} por{" "}
                   {money(targetPrice)}{" "}
-                {periodSuffix(target.period)}.
+                  {periodSuffix(t, target.period)}.
               </p>
             ) : (
               <p className="mt-6 text-sm leading-relaxed text-muted-foreground">

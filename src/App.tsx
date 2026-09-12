@@ -4667,6 +4667,7 @@ function AccessDetailsPoc({
           scenario={scenario}
           tier={tier}
           period={period}
+          t={t}
           flagOff={false}
           target={target}
           onBack={() => {
@@ -4717,6 +4718,7 @@ function AccessDetailsPoc({
           scenario={scenario}
           tier={tier}
           period={period}
+          t={t}
           target={target}
           dueNow={
             preview.requiresPaymentConfirmation
@@ -4827,6 +4829,7 @@ function AccessDetailsPoc({
         scenario={scenario}
         tier={tier}
         period={period}
+        t={t}
         cardEnding={scenario.payment === "card" ? "Cartão cadastrado" : "Pix"}
         canChange={canChange}
         flagOff={!billing.plansEnabled}
