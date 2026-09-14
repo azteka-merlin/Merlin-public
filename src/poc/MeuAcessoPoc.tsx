@@ -630,7 +630,6 @@ export function StateBanner({
 }
 
 export function Overview({
-  t,
   scenario,
   tier,
   period,
@@ -824,7 +823,6 @@ function Info({
 }
 
 export function ChangeView({
-  t,
   scenario,
   tier,
   period,
@@ -964,7 +962,6 @@ export function ChangeView({
 }
 
 export function PreviewView({
-  t,
   scenario,
   tier,
   period,
