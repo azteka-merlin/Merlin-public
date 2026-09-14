@@ -630,6 +630,7 @@ export function StateBanner({
 }
 
 export function Overview({
+  t,
   scenario,
   tier,
   period,
@@ -643,6 +644,7 @@ export function Overview({
   onReplaceScheduled,
   priceCents,
 }: {
+  t: TFn;
   scenario: PocScenario;
   tier: PocTier;
   period: PocPeriod;
@@ -822,6 +824,7 @@ function Info({
 }
 
 export function ChangeView({
+  t,
   scenario,
   tier,
   period,
@@ -835,6 +838,7 @@ export function ChangeView({
   priceFor,
   isAvailable,
 }: {
+  t: TFn;
   scenario: PocScenario;
   tier: PocTier;
   period: PocPeriod;
@@ -960,6 +964,7 @@ export function ChangeView({
 }
 
 export function PreviewView({
+  t,
   scenario,
   tier,
   period,
@@ -974,6 +979,7 @@ export function PreviewView({
   targetPriceCents,
   stale,
 }: {
+  t: TFn;
   scenario: PocScenario;
   tier: PocTier;
   period: PocPeriod;

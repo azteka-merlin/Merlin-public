@@ -1807,14 +1807,20 @@ function Plans({
   }
 
   function focusResultPanel() {
-    window.setTimeout(
-      () =>
-        formRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        }),
-      80,
-    );
+    // The result container expands through a 500ms grid transition. A single
+    // scroll before that transition finishes can land at the old collapsed
+    // position, especially after Stripe restores the checkout return page.
+    const focus = () =>
+      formRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        focus();
+        window.setTimeout(focus, 560);
+      });
+    });
   }
 
   function showSuccess(
@@ -2606,6 +2612,7 @@ function Plans({
             )}
             <div
               ref={formRef}
+              id="resultado-acesso"
               className={cx(
                 "mx-auto grid max-w-[660px] transition-all duration-500",
                 showRegisterForm || mode !== "register"
@@ -4664,6 +4671,7 @@ function AccessDetailsPoc({
           />
         )}
         <ChangeView
+          t={t}
           scenario={scenario}
           tier={tier}
           period={period}
@@ -4715,6 +4723,7 @@ function AccessDetailsPoc({
           </div>
         </header>
         <PreviewView
+          t={t}
           scenario={scenario}
           tier={tier}
           period={period}
@@ -4826,6 +4835,7 @@ function AccessDetailsPoc({
         />
       )}
       <Overview
+        t={t}
         scenario={scenario}
         tier={tier}
         period={period}
@@ -4917,6 +4927,30 @@ function MyAccessPage({
   }, [t]);
 
   useEffect(() => {
+    const handoffParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const handoffToken = handoffParams.get("handoff")?.trim() || "";
+    if (handoffToken) {
+      // Remove the opaque one-time token from the address bar before making
+      // the exchange, keeping it out of history and later screenshots.
+      window.history.replaceState({}, "", "/meu-acesso");
+      void fetch("/api/public/access/handoff/consume", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ token: handoffToken }),
+      })
+        .then(async (response) => {
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || payload.success === false)
+            throw new Error(payload.error || t("accessSessionError"));
+          return refreshAccess();
+        })
+        .catch((reason) =>
+          setError(reason instanceof Error ? reason.message : t("accessSessionError")),
+        )
+        .finally(() => setLoading(false));
+      return undefined;
+    }
     if (isPendingWindow) return undefined;
     void refreshAccess()
       .catch((reason) =>
@@ -4935,10 +4969,10 @@ function MyAccessPage({
     };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("access") === "plan-change-return")
+    const accessParams = new URLSearchParams(window.location.search);
+    if (accessParams.get("access") === "plan-change-return")
       setNotice(t("accessPlanChangeUpdating"));
-    if (params.get("access") === "plan-change-cancel")
+    if (accessParams.get("access") === "plan-change-cancel")
       setNotice(t("accessPlanChangeCanceled"));
     return () => {
       window.removeEventListener("focus", onFocus);

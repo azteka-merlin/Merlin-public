@@ -4,10 +4,10 @@ export default {
     const csp = [
       "default-src 'self'",
       "script-src 'self' https://static.cloudflareinsights.com https://www.mercadopago.com",
-      "style-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https://shared.akamai.steamstatic.com https://shared.fastly.steamstatic.com https://cdn.cloudflare.steamstatic.com https://generator.ryuu.lol https://depotbox.org",
-      "font-src 'self' data:",
-      "connect-src 'self'",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "connect-src 'self' https://api.mercadopago.com https://www.mercadopago.com",
       "frame-src https://www.youtube-nocookie.com",
       "object-src 'none'",
       "base-uri 'none'",
