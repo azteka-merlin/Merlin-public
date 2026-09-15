@@ -660,7 +660,7 @@ function AppHeader({
           </Dialog.Root>
           <a
             href="#top"
-            className="flex min-w-0 items-center gap-2 lg:gap-3"
+            className="flex shrink-0 items-center gap-2 lg:gap-3"
             onClick={(e) => {
               e.preventDefault();
               if (onLandingPage) window.scrollTo({ top: 0, behavior: "smooth" });
@@ -672,7 +672,7 @@ function AppHeader({
               alt="Merlin"
               className="h-9 w-9 shrink-0 object-contain sm:h-10 sm:w-10 lg:h-11 lg:w-11"
             />
-            <span className="font-display truncate text-lg font-bold tracking-tight sm:text-xl lg:text-xl xl:text-2xl">
+            <span className="font-display whitespace-nowrap text-lg font-bold tracking-tight sm:text-xl lg:text-xl xl:text-2xl">
               Merlin
             </span>
           </a>
