@@ -1578,6 +1578,8 @@ const tierVisualCopy: Record<Locale, Dict> = {
     tierPlansTitle: "Choose your access level",
     tierPlansBody:
       "All plans include unlimited standard activations and access to Premium. What changes is the Premium activation limit and release priority.",
+    automaticAccessAfterPayment:
+      "Access is released automatically after payment confirmation.",
     tierSave: "Save",
     tierBronzeBadge: "Starter",
     tierBronzeDescription: "For people who use Premium occasionally.",
@@ -1611,6 +1613,8 @@ const tierVisualCopy: Record<Locale, Dict> = {
     tierPlansTitle: "Escolha o seu nível de acesso",
     tierPlansBody:
       "Todos os planos incluem ativações padrão ilimitadas e acesso ao Premium. O que muda é o limite de ativações Premium e a prioridade nos lançamentos.",
+    automaticAccessAfterPayment:
+      "Acesso liberado automaticamente após a confirmação do pagamento.",
     tierSave: "Economize",
     tierBronzeBadge: "Entrada",
     tierBronzeDescription: "Para quem usa o Premium ocasionalmente.",
@@ -1645,6 +1649,8 @@ const tierVisualCopy: Record<Locale, Dict> = {
     tierPlansTitle: "Elige tu nivel de acceso",
     tierPlansBody:
       "Todos los planes incluyen activaciones estándar ilimitadas y acceso Premium.",
+    automaticAccessAfterPayment:
+      "El acceso se libera automáticamente tras la confirmación del pago.",
     tierSave: "Ahorra",
     tierBronzeBadge: "Entrada",
     tierBronzeDescription: "Para usar Premium ocasionalmente.",
@@ -1677,6 +1683,8 @@ const tierVisualCopy: Record<Locale, Dict> = {
     tierPlansTitle: "Choisissez votre niveau d'accès",
     tierPlansBody:
       "Toutes les offres incluent des activations standard illimitées et Premium.",
+    automaticAccessAfterPayment:
+      "L'accès est activé automatiquement après confirmation du paiement.",
     tierSave: "Économisez",
     tierBronzeBadge: "Essentiel",
     tierBronzeDescription: "Pour un usage Premium occasionnel.",
@@ -1709,6 +1717,8 @@ const tierVisualCopy: Record<Locale, Dict> = {
     tierPlansTitle: "Wähle deinen Zugangslevel",
     tierPlansBody:
       "Alle Pläne enthalten unbegrenzte Standardaktivierungen und Premium-Zugang.",
+    automaticAccessAfterPayment:
+      "Der Zugang wird nach Zahlungsbestätigung automatisch freigeschaltet.",
     tierSave: "Sparen",
     tierBronzeBadge: "Einstieg",
     tierBronzeDescription: "Für gelegentliche Premium-Nutzung.",

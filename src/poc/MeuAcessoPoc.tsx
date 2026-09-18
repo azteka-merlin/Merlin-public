@@ -590,7 +590,7 @@ export function StateBanner({
   tone: "error" | "pending";
   title: string;
   body: string;
-  action?: { label: string; onClick: () => void };
+  action?: { label: string; onClick: () => void; disabled?: boolean };
 }) {
   const Icon = tone === "error" ? CircleAlert : Clock3;
   return (
@@ -621,6 +621,7 @@ export function StateBanner({
           variant="outline"
           className="mt-4 sm:mt-0"
           onClick={action.onClick}
+          disabled={action.disabled}
         >
           {action.label}
         </Button>
@@ -643,7 +644,6 @@ export function Overview({
   onReplaceScheduled,
   priceCents,
 }: {
-  t: TFn;
   scenario: PocScenario;
   tier: PocTier;
   period: PocPeriod;
@@ -836,7 +836,6 @@ export function ChangeView({
   priceFor,
   isAvailable,
 }: {
-  t: TFn;
   scenario: PocScenario;
   tier: PocTier;
   period: PocPeriod;
@@ -976,7 +975,6 @@ export function PreviewView({
   targetPriceCents,
   stale,
 }: {
-  t: TFn;
   scenario: PocScenario;
   tier: PocTier;
   period: PocPeriod;

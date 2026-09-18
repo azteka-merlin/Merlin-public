@@ -4,6 +4,7 @@ import { Check, ChevronDown, Clock, Menu, X, Zap } from "lucide-react";
 import { FaTiktok, FaTwitch, FaYoutube } from "react-icons/fa6";
 import { dictionaries, initialLocale, type Locale } from "./i18n";
 import { CatalogPage } from "./CatalogPage";
+import { buildResultAnchorUrl, focusResultPanelAfterRender } from "./result-anchor";
 import {
   ChangeView,
   Overview,
@@ -118,6 +119,7 @@ type AccessDetailsPayload = {
       status?: string;
       currentPeriodEnd?: string | null;
       cancelAtPeriodEnd?: boolean;
+      paymentMethod?: "card" | "pix";
       canManage?: boolean;
     } | null;
     upgrade?: {
@@ -1284,6 +1286,10 @@ function TierPlanCards({
         <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           {t("tierPlansBody")}
         </p>
+        <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-medium text-primary">
+          <span aria-hidden="true">⚡</span>
+          {t("automaticAccessAfterPayment")}
+        </p>
         <div
           className="mt-8 inline-flex items-center gap-1 rounded-full border border-border bg-card/70 p-1"
           role="tablist"
@@ -1807,21 +1813,25 @@ function Plans({
   }
 
   function focusResultPanel() {
-    // The result container expands through a 500ms grid transition. A single
-    // scroll before that transition finishes can land at the old collapsed
-    // position, especially after Stripe restores the checkout return page.
-    const focus = () =>
-      formRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        focus();
-        window.setTimeout(focus, 560);
-      });
-    });
+    focusResultPanelAfterRender(
+      formRef.current,
+      window.requestAnimationFrame.bind(window),
+      window.setTimeout.bind(window),
+    );
   }
+
+  useEffect(() => {
+    if (!success?.licenseKey) return undefined;
+    // The panel is mounted by this state change. Doing this from showSuccess
+    // races React's render and can miss the result after a Stripe redirect.
+    window.history.replaceState(
+      {},
+      "",
+      buildResultAnchorUrl(window.location.pathname, window.location.search),
+    );
+    focusResultPanel();
+    return undefined;
+  }, [success?.licenseKey]);
 
   function showSuccess(
     next: { title: string; licenseKey: string; recoveryPin?: string | null },
@@ -1833,7 +1843,6 @@ function Plans({
     setAccessNotice("");
     setMode("success");
     clearTransientFields(options);
-    focusResultPanel();
   }
 
   function showPaymentResult(
@@ -2300,11 +2309,12 @@ function Plans({
   useEffect(() => {
     if (mode !== "pix" || !pixOrder || pixOrder.status !== "awaiting_payment")
       return undefined;
+    const pendingPixOrder = pixOrder;
     let stopped = false;
     let timer: number | undefined;
     async function poll() {
       try {
-        const result = await checkPixStatus(pixOrder);
+        const result = await checkPixStatus(pendingPixOrder);
         if (stopped || result !== "waiting") return;
       } catch {
         // Keep polling; temporary network failure is not a payment failure.
@@ -2753,6 +2763,12 @@ function Plans({
                       {errors.accepted && (
                         <p className="text-xs text-destructive">
                           {errors.accepted}
+                        </p>
+                      )}
+                      {billing.billingEnabled && plan && (
+                        <p className="text-center text-xs text-muted-foreground">
+                          <span aria-hidden="true">⚡</span>{" "}
+                          {t("automaticAccessAfterPayment")}
                         </p>
                       )}
                       <Button
@@ -3611,12 +3627,13 @@ function AccessModal({
 
   useEffect(() => {
     if (!open || !sessionId || step !== "upgrade-status") return undefined;
+    const activeSessionId = sessionId;
     let canceled = false;
     async function poll() {
       for (let attempt = 0; attempt < 15 && !canceled; attempt += 1) {
         try {
           const payload = await fetch(
-            `/api/public/access/upgrade-status?session_id=${encodeURIComponent(sessionId)}`,
+            `/api/public/access/upgrade-status?session_id=${encodeURIComponent(activeSessionId)}`,
           ).then((r) => r.json());
           if (payload?.success !== false && payload.status === "completed") {
             setUpgradeStatus("completed");
@@ -3866,6 +3883,22 @@ function AccessModal({
     }
   }
 
+  async function startCardRenewal() {
+    setLoading(true);
+    setMessage(t("checkoutLoading"));
+    try {
+      const payload = await postJson<{ checkoutUrl: string }>(
+        "/api/public/access/renewal/card",
+        { email: normalizeEmail(email), recoveryPin },
+        t("genericError"),
+      );
+      window.location.href = payload.checkoutUrl;
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : t("genericError"));
+      setLoading(false);
+    }
+  }
+
   async function checkRenewalPixStatus(order: PixOrder, manual = false) {
     if (manual) setRenewalPixChecking(true);
     try {
@@ -3965,6 +3998,10 @@ function AccessModal({
             onClose={onClose}
             onBackToPlans={onBackToPlans}
             onPortal={openSubscriptionPortal}
+            onRenewPix={async () => { await startRenewal("pix"); }}
+            onRenewCard={() => void startCardRenewal()}
+            renewingPix={loading}
+            renewingCard={loading}
             onPreview={previewPlanChange}
             onCreate={createPlanChange}
             onCancelChange={cancelPlanChange}
@@ -4377,6 +4414,10 @@ function AccessDetailsPoc({
   onClose,
   onBackToPlans,
   onPortal,
+  onRenewPix,
+  onRenewCard,
+  renewingPix,
+  renewingCard,
   onPreview,
   onCreate,
   onCancelChange,
@@ -4388,6 +4429,10 @@ function AccessDetailsPoc({
   onClose: () => void;
   onBackToPlans: () => void;
   onPortal: () => void;
+  onRenewPix: (target?: { tier: PocTier; period: PocPeriod }) => Promise<void>;
+  onRenewCard: () => void;
+  renewingPix: boolean;
+  renewingCard: boolean;
   onPreview: (target: {
     tier: PlanTier;
     period: BillingPeriod;
@@ -4405,6 +4450,7 @@ function AccessDetailsPoc({
   } | null>(null);
   const [preview, setPreview] = useState<PublicPlanChangePreview | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pixPlanSelectionOpen, setPixPlanSelectionOpen] = useState(false);
   const [error, setError] = useState("");
   const externalRedirectStarted = useRef(false);
 
@@ -4415,15 +4461,19 @@ function AccessDetailsPoc({
     access.billingStatus === "canceled" ||
     access.subscription?.status === "canceled";
   let status: PocStatus = access.current === false ? "expired" : "active";
-  if (access.kind === "lifetime") status = "lifetime";
-  else if (access.accessType === "test") status = "test";
-  else if (["free", "manual"].includes(access.accessType || ""))
-    status = "manual";
-  else if (planChange?.status === "scheduled") status = "scheduled";
-  else if (planChange?.status === "pending_payment") status = "pending";
-  else if (planChange?.status === "not_completed") status = "failed";
-  else if (subscriptionCanceled) status = "canceled";
-  else if (access.subscription?.cancelAtPeriodEnd) status = "canceling";
+  // An expired license must never be presented as merely "canceled". The
+  // latter is useful only while the remaining paid period is still current.
+  if (status !== "expired") {
+    if (access.kind === "lifetime") status = "lifetime";
+    else if (access.accessType === "test") status = "test";
+    else if (["free", "manual"].includes(access.accessType || ""))
+      status = "manual";
+    else if (planChange?.status === "scheduled") status = "scheduled";
+    else if (planChange?.status === "pending_payment") status = "pending";
+    else if (planChange?.status === "not_completed") status = "failed";
+    else if (subscriptionCanceled) status = "canceled";
+    else if (access.subscription?.cancelAtPeriodEnd) status = "canceling";
+  }
 
   const renewal = formatDate(
     locale,
@@ -4436,7 +4486,7 @@ function AccessDetailsPoc({
     label: t("accessPortalTitle"),
     tier,
     period,
-    payment: access.subscription?.canManage ? "card" : "pix",
+    payment: access.subscription?.paymentMethod || (access.subscription?.canManage ? "card" : "pix"),
     status,
     renewalDate: renewal,
     pendingTarget: planChange
@@ -4446,6 +4496,14 @@ function AccessDetailsPoc({
   const isCardSubscription = Boolean(access.subscription?.canManage);
   const isRecurring = access.kind === "monthly" || access.kind === "annual";
   const isManualPixAccess = isRecurring && !isCardSubscription;
+  const canRenewPix = status === "expired" && Boolean(access.renewal?.pix) && !access.renewal?.card;
+  const canChangeExpiredPix = canRenewPix && isManualPixAccess;
+  const canRenewCard = status === "expired"
+    && access.subscription?.paymentMethod === "card"
+    && access.billingStatus === "canceled";
+  const canRegularizeStripe = status === "expired"
+    && !canRenewPix
+    && ["past_due", "unpaid"].includes(access.billingStatus || "");
   const periodEnabled = (candidate: PocPeriod) =>
     candidate === "monthly" ? billing.monthlyEnabled : billing.annualEnabled;
   const availablePeriods = (["monthly", "annual"] as PocPeriod[]).filter(
@@ -4466,6 +4524,7 @@ function AccessDetailsPoc({
     isCardSubscription &&
     status !== "pending" &&
     status !== "scheduled" &&
+    status !== "canceling" &&
     status !== "canceled",
   );
   const currentPrice =
@@ -4574,6 +4633,37 @@ function AccessDetailsPoc({
     }
   }
 
+  if (pixPlanSelectionOpen && canChangeExpiredPix) {
+    return (
+      <ExpiredPixPlanSelector
+        billing={billing}
+        locale={locale}
+        initialTier={tier}
+        initialPeriod={period}
+        busy={busy || renewingPix}
+        error={error}
+        onBack={() => {
+          if (busy || renewingPix) return;
+          setError("");
+          setPixPlanSelectionOpen(false);
+        }}
+        onGenerate={async (target) => {
+          if (busy || renewingPix) return;
+          setBusy(true);
+          setError("");
+          try {
+            await onRenewPix(target);
+            setPixPlanSelectionOpen(false);
+          } catch (cause) {
+            setError(cause instanceof Error ? cause.message : t("genericError"));
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
+    );
+  }
+
   if (view === "replace") {
     return (
       <div className="px-1 pb-2 sm:px-2">
@@ -4594,10 +4684,9 @@ function AccessDetailsPoc({
             <button
               type="button"
               onClick={onClose}
-              className="text-muted-foreground hover:text-foreground"
-              aria-label={t("close")}
+              className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary hover:text-foreground"
             >
-              ×
+              Sair
             </button>
           </div>
         </header>
@@ -4656,10 +4745,9 @@ function AccessDetailsPoc({
             <button
               type="button"
               onClick={onClose}
-              className="text-muted-foreground hover:text-foreground"
-              aria-label={t("close")}
+              className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary hover:text-foreground"
             >
-              ×
+              Sair
             </button>
           </div>
         </header>
@@ -4675,7 +4763,6 @@ function AccessDetailsPoc({
           scenario={scenario}
           tier={tier}
           period={period}
-          t={t}
           flagOff={false}
           target={target}
           onBack={() => {
@@ -4686,7 +4773,7 @@ function AccessDetailsPoc({
           onPreview={requestPreview}
           periods={availablePeriods}
           priceFor={(candidateTier, candidatePeriod) =>
-            getTierPrice(billing, "card", candidateTier, candidatePeriod)
+            getTierPrice(billing, canChangeExpiredPix ? "pix" : "card", candidateTier, candidatePeriod)
               ?.amountCents ?? null
           }
           isAvailable={isAvailable}
@@ -4715,10 +4802,9 @@ function AccessDetailsPoc({
             <button
               type="button"
               onClick={onClose}
-              className="text-muted-foreground hover:text-foreground"
-              aria-label={t("close")}
+              className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary hover:text-foreground"
             >
-              ×
+              Sair
             </button>
           </div>
         </header>
@@ -4727,7 +4813,6 @@ function AccessDetailsPoc({
           scenario={scenario}
           tier={tier}
           period={period}
-          t={t}
           target={target}
           dueNow={
             preview.requiresPaymentConfirmation
@@ -4767,10 +4852,9 @@ function AccessDetailsPoc({
           <button
             type="button"
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground"
-            aria-label={t("close")}
+            className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary hover:text-foreground"
           >
-            ×
+            Sair
           </button>
         </div>
       </header>
@@ -4830,8 +4914,28 @@ function AccessDetailsPoc({
         <StateBanner
           tone="error"
           title="Seu acesso expirou"
-          body="Escolha um novo plano para continuar usando o Merlin."
-          action={{ label: "Ver planos", onClick: onBackToPlans }}
+          body={canRegularizeStripe
+            ? "Seu pagamento está pendente. Regularize a cobrança para reativar seu plano."
+            : canRenewCard
+            ? "Renove seu plano para reativar esta mesma licença e continuar usando o Merlin."
+            : canRenewPix
+            ? `Renove seu Plano ${tier === "prata" ? "Prata" : tier === "ouro" ? "Ouro" : "Bronze"} via Pix para continuar usando o Merlin.`
+            : "Escolha um novo plano para continuar usando o Merlin."}
+          action={canRegularizeStripe
+            ? { label: "Regularizar pagamento", onClick: onPortal }
+            : canRenewCard
+            ? {
+                label: renewingCard ? t("checkoutLoading") : "Renovar plano",
+                onClick: onRenewCard,
+                disabled: renewingCard,
+              }
+            : canRenewPix
+            ? {
+                label: renewingPix ? t("pixCreating") : "Renovar via Pix",
+                onClick: () => onRenewPix(),
+                disabled: renewingPix,
+              }
+            : { label: "Ver planos", onClick: onBackToPlans }}
         />
       )}
       <Overview
@@ -4839,12 +4943,11 @@ function AccessDetailsPoc({
         scenario={scenario}
         tier={tier}
         period={period}
-        t={t}
         cardEnding={scenario.payment === "card" ? "Cartão cadastrado" : "Pix"}
-        canChange={canChange}
+        canChange={canChange || canChangeExpiredPix}
         flagOff={!billing.plansEnabled}
         priceCents={currentPrice}
-        onChange={beginChange}
+        onChange={canChangeExpiredPix ? () => setPixPlanSelectionOpen(true) : beginChange}
         onPortal={onPortal}
         onCancelScheduled={cancelScheduledChange}
         onReplaceScheduled={() => setView("replace")}
@@ -4852,6 +4955,98 @@ function AccessDetailsPoc({
     </div>
   );
 }
+
+function ExpiredPixPlanSelector({
+  billing,
+  locale,
+  initialTier,
+  initialPeriod,
+  busy,
+  error,
+  onBack,
+  onGenerate,
+}: {
+  billing: BillingState;
+  locale: Locale;
+  initialTier: PocTier;
+  initialPeriod: PocPeriod;
+  busy: boolean;
+  error: string;
+  onBack: () => void;
+  onGenerate: (target: { tier: PocTier; period: PocPeriod }) => Promise<void>;
+}) {
+  const [period, setPeriod] = useState<PocPeriod>(initialPeriod);
+  const [tier, setTier] = useState<PocTier>(initialTier);
+  const price = getTierPrice(billing, "pix", tier, period);
+  const available = (candidateTier: PocTier, candidatePeriod: PocPeriod) => Boolean(
+    getTierPrice(billing, "pix", candidateTier, candidatePeriod),
+  );
+
+  return (
+    <div className="px-1 pb-2 sm:px-2">
+      <section className="max-w-3xl">
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={busy}
+          className="mb-7 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          ← Voltar ao meu acesso
+        </button>
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">Renovação Pix</p>
+        <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">Escolha o plano para renovar</h2>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          Ao gerar o Pix, sua licença será reativada no plano selecionado assim que o pagamento for confirmado.
+        </p>
+        {error && <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</p>}
+        <div className="mt-8 inline-flex rounded-lg border border-border bg-card p-1">
+          {(["monthly", "annual"] as PocPeriod[]).map((candidate) => (
+            <button
+              key={candidate}
+              type="button"
+              disabled={busy || !(["bronze", "prata", "ouro"] as PocTier[]).some((candidateTier) => available(candidateTier, candidate))}
+              onClick={() => {
+                setPeriod(candidate);
+                if (!available(tier, candidate)) {
+                  const fallback = (["bronze", "prata", "ouro"] as PocTier[]).find((candidateTier) => available(candidateTier, candidate));
+                  if (fallback) setTier(fallback);
+                }
+              }}
+              className={cx("rounded-md px-4 py-2 text-sm font-medium transition-colors", period === candidate ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground", "disabled:cursor-not-allowed disabled:opacity-40")}
+            >
+              {candidate === "monthly" ? "Mensal" : "Anual"}
+            </button>
+          ))}
+        </div>
+        <div className="mt-7 grid gap-3 md:grid-cols-3">
+          {(["bronze", "prata", "ouro"] as PocTier[]).map((candidate) => {
+            const candidatePrice = getTierPrice(billing, "pix", candidate, period);
+            const selected = tier === candidate;
+            return (
+              <button
+                key={candidate}
+                type="button"
+                disabled={busy || !candidatePrice}
+                onClick={() => setTier(candidate)}
+                className={cx("min-h-[180px] rounded-xl border p-5 text-left transition-all", selected ? "border-primary bg-secondary/70 shadow-[var(--glow-soft)]" : "border-border bg-card hover:border-primary/45", "disabled:cursor-not-allowed disabled:opacity-40")}
+              >
+                <p className="text-lg font-semibold">{candidate === "bronze" ? "Bronze" : candidate === "prata" ? "Prata" : "Ouro"}</p>
+                <p className="mt-3 text-2xl font-semibold tabular-nums">{candidatePrice ? formatMoney(locale, candidatePrice) : "Indisponível"}</p>
+                <p className="mt-3 text-xs text-muted-foreground">Pagamento único via Pix para o próximo período.</p>
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-8 flex justify-end">
+          <Button size="lg" disabled={busy || !price} onClick={() => void onGenerate({ tier, period })}>
+            {busy ? "Gerando Pix..." : "Gerar Pix"}
+          </Button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function StatusModalView({
   modal,
   t,
@@ -4907,6 +5102,13 @@ function MyAccessPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [renewalPixOrder, setRenewalPixOrder] = useState<PixOrder | null>(null);
+  const [renewalPixCopied, setRenewalPixCopied] = useState(false);
+  const [renewalPixChecking, setRenewalPixChecking] = useState(false);
+  const [renewingPix, setRenewingPix] = useState(false);
+  const [renewingCard, setRenewingCard] = useState(false);
+  const pixRenewalStarted = useRef(false);
+  const cardRenewalStarted = useRef(false);
   const isPendingWindow = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("pending") === "1" || params.get("opening-portal") === "1";
@@ -4974,6 +5176,10 @@ function MyAccessPage({
       setNotice(t("accessPlanChangeUpdating"));
     if (accessParams.get("access") === "plan-change-cancel")
       setNotice(t("accessPlanChangeCanceled"));
+    if (accessParams.get("access") === "renewal-return")
+      setNotice("Pagamento confirmado. Atualizando seu acesso...");
+    if (accessParams.get("access") === "renewal-cancel")
+      setNotice("Renovação cancelada. Seu acesso não foi alterado.");
     return () => {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
@@ -4996,6 +5202,74 @@ function MyAccessPage({
       );
     return payload as T;
   }
+
+  async function startPixRenewal(target?: { tier: PocTier; period: PocPeriod }) {
+    if (pixRenewalStarted.current) return;
+    pixRenewalStarted.current = true;
+    setRenewingPix(true);
+    try {
+      const payload = await postSession<PixOrder>("/api/public/access/session/renewal/pix", {
+        mercadoPagoDeviceId: getMercadoPagoDeviceId() || undefined,
+        ...(target ? { planTier: target.tier, planType: target.period } : {}),
+      });
+      setRenewalPixOrder(payload);
+      setRenewalPixCopied(false);
+    } catch (reason) {
+      pixRenewalStarted.current = false;
+      setRenewingPix(false);
+      throw reason;
+    }
+  }
+
+  function startNewPixRenewal() {
+    pixRenewalStarted.current = false;
+    setRenewingPix(false);
+    setRenewalPixOrder(null);
+    void startPixRenewal().catch((reason) =>
+      setError(reason instanceof Error ? reason.message : t("genericError")),
+    );
+  }
+
+  async function startCardRenewal() {
+    if (cardRenewalStarted.current) return;
+    cardRenewalStarted.current = true;
+    setRenewingCard(true);
+    try {
+      const payload = await postSession<{ checkoutUrl?: string }>(
+        "/api/public/access/session/renewal/card",
+        {},
+      );
+      if (!payload.checkoutUrl) throw new Error(t("genericError"));
+      window.location.assign(payload.checkoutUrl);
+    } catch (reason) {
+      cardRenewalStarted.current = false;
+      setRenewingCard(false);
+      throw reason;
+    }
+  }
+
+  async function checkRenewalPixStatus(order: PixOrder, manual = false) {
+    if (manual) setRenewalPixChecking(true);
+    try {
+      const response = await fetch(`/api/public/pix/orders/${encodeURIComponent(order.paymentIntentId)}/status`);
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || payload.success === false) throw new Error(payload.error || t("genericError"));
+      if (payload.status === "paid") {
+        setRenewalPixOrder(null);
+        await refreshAccess();
+      } else if (payload.status === "expired" || payload.status === "failed") {
+        setRenewalPixOrder((value) => value ? { ...value, status: payload.status } : value);
+      }
+    } finally {
+      if (manual) setRenewalPixChecking(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!renewalPixOrder || renewalPixOrder.status !== "awaiting_payment") return undefined;
+    const timer = window.setInterval(() => { void checkRenewalPixStatus(renewalPixOrder); }, 3500);
+    return () => window.clearInterval(timer);
+  }, [renewalPixOrder?.paymentIntentId, renewalPixOrder?.status]);
 
   async function openPortal() {
     const portal = window.open("/meu-acesso?opening-portal=1", "_blank");
@@ -5058,6 +5332,22 @@ function MyAccessPage({
         {returnNotice && (
           <StateBanner tone="pending" title={t("accessPortalTitle")} body={returnNotice} />
         )}
+        {renewalPixOrder && (
+          <div className="fixed inset-0 z-[90] overflow-y-auto bg-background/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Pagamento Pix">
+            <div className="mx-auto my-8 max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-2xl sm:p-8">
+              <PixPaymentPanel
+                order={renewalPixOrder}
+                plan={renewalPixOrder.planType}
+                copied={renewalPixCopied}
+                checking={renewalPixChecking}
+                setCopied={setRenewalPixCopied}
+                t={t}
+                onRetry={() => checkRenewalPixStatus(renewalPixOrder, true)}
+                onNewPix={startNewPixRenewal}
+              />
+            </div>
+          </div>
+        )}
         <AccessDetailsPoc
           access={access.access}
           billing={billing}
@@ -5079,6 +5369,14 @@ function MyAccessPage({
               ),
             );
           }}
+          onRenewPix={(target) => startPixRenewal(target)}
+          renewingPix={renewingPix}
+          onRenewCard={() => {
+            void startCardRenewal().catch((reason) =>
+              setError(reason instanceof Error ? reason.message : t("genericError")),
+            );
+          }}
+          renewingCard={renewingCard}
           onPreview={async (target) => {
             const payload = await postSession<
               PublicPlanChangeResponse<PublicPlanChangePreview>
