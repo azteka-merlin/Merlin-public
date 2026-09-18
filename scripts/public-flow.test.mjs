@@ -47,17 +47,20 @@ test("plans and checkout explain that access is released after payment confirmat
   assert.match(app, /billing\.billingEnabled && plan && \([\s\S]{0,300}automaticAccessAfterPayment/);
 });
 
-test("expired Pix access can renew unchanged or select its next plan through the protected renewal route", () => {
+test("Pix renewal is protected, can be scheduled before expiry, and confirms visibly after payment", () => {
   assert.match(app, /\/api\/public\/access\/session\/renewal\/pix/);
-  assert.match(app, /const canRenewPix = status === "expired"/);
-  assert.match(app, /const canChangeExpiredPix = canRenewPix && isManualPixAccess/);
+  assert.match(app, /access\.renewal\?\.earlyPix/);
+  assert.match(app, /const canChangeExpiredPix = canRenewPix && isManualPixAccess && !access\.pixRenewal/);
   assert.match(app, /label: renewingPix \? t\("pixCreating"\) : "Renovar via Pix"/);
   assert.match(app, /onClick: \(\) => onRenewPix\(\)/);
   assert.match(app, /onRenewPix\(target\)/);
   assert.match(app, /planTier: target\.tier, planType: target\.period/);
   assert.match(app, /function ExpiredPixPlanSelector/);
   assert.match(app, /aria-label="Pagamento Pix"/);
-  assert.match(app, /setRenewalPixOrder\(null\);\s*await refreshAccess\(\);/);
+  assert.match(app, /setRenewalPixOrder\(null\);[\s\S]{0,180}await refreshAccess\(\);/);
+  assert.match(app, /Renovação Pix confirmada/);
+  assert.match(app, /status === "active" && !access\.pixRenewal/);
+  assert.match(app, /pixRenewalStarted\.current = false;\s*setRenewingPix\(false\);/);
   assert.match(app, /onChange=\{canChangeExpiredPix \? \(\) => setPixPlanSelectionOpen\(true\) : beginChange\}/);
   assert.doesNotMatch(app, /<ChangeView[\s\S]{0,900}onRenewPix/);
 });
@@ -65,6 +68,13 @@ test("expired Pix access can renew unchanged or select its next plan through the
 test("Pix remains outside the active Stripe plan-change flow", () => {
   assert.match(app, /const canChange = Boolean\([\s\S]*isCardSubscription/);
   assert.match(app, /isManualPixAccess && status === "active"/);
+  assert.match(app, /const subscriptionCanceled = isCardSubscription && \(/);
+  assert.match(app, /isCardSubscription && access\.subscription\?\.cancelAtPeriodEnd/);
+  assert.match(app, /access\.subscription\?\.canManage/);
+});
+
+test("Meu acesso displays billing dates in the Brazilian billing timezone", () => {
+  assert.match(app, /new Intl\.DateTimeFormat\([\s\S]{0,400}timeZone: "America\/Sao_Paulo"/);
 });
 
 test("expired Stripe payment failures go to billing regularization", () => {

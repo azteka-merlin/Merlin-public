@@ -619,7 +619,7 @@ export function StateBanner({
       {action && (
         <Button
           variant="outline"
-          className="mt-4 sm:mt-0"
+          className="mt-4 shrink-0 whitespace-nowrap sm:mt-0"
           onClick={action.onClick}
           disabled={action.disabled}
         >

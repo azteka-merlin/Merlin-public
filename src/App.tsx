@@ -104,6 +104,8 @@ type PixOrder = {
   qrCodeBase64?: string | null;
   ticketUrl?: string | null;
   expiresAt?: string | null;
+  renewalEffectiveAt?: string | null;
+  renewalAppliedAt?: string | null;
 };
 type AccessDetailsPayload = {
   status: "found" | "not_found";
@@ -131,6 +133,7 @@ type AccessDetailsPayload = {
       available: boolean;
       card?: boolean;
       pix?: boolean;
+      earlyPix?: boolean;
       price?: BillingPrice | null;
     };
     planChange?: {
@@ -140,6 +143,11 @@ type AccessDetailsPayload = {
       timing: "immediate" | "period_end";
       effectiveAt?: string | null;
       canCancel?: boolean;
+    } | null;
+    pixRenewal?: {
+      targetTier: PlanTier;
+      targetPeriod: BillingPeriod;
+      effectiveAt?: string | null;
     } | null;
   };
 };
@@ -430,6 +438,7 @@ function formatDate(locale: Locale, value?: string | null) {
           : locale === "es"
             ? "es-ES"
             : "en-US",
+    { timeZone: "America/Sao_Paulo" },
   ).format(date);
 }
 
@@ -4457,9 +4466,11 @@ function AccessDetailsPoc({
   const period: PocPeriod = access.kind === "annual" ? "annual" : "monthly";
   const tier: PocTier = access.planTier || "ouro";
   const planChange = access.planChange;
-  const subscriptionCanceled =
+  const isCardSubscription = Boolean(access.subscription?.canManage);
+  const subscriptionCanceled = isCardSubscription && (
     access.billingStatus === "canceled" ||
-    access.subscription?.status === "canceled";
+    access.subscription?.status === "canceled"
+  );
   let status: PocStatus = access.current === false ? "expired" : "active";
   // An expired license must never be presented as merely "canceled". The
   // latter is useful only while the remaining paid period is still current.
@@ -4472,7 +4483,7 @@ function AccessDetailsPoc({
     else if (planChange?.status === "pending_payment") status = "pending";
     else if (planChange?.status === "not_completed") status = "failed";
     else if (subscriptionCanceled) status = "canceled";
-    else if (access.subscription?.cancelAtPeriodEnd) status = "canceling";
+    else if (isCardSubscription && access.subscription?.cancelAtPeriodEnd) status = "canceling";
   }
 
   const renewal = formatDate(
@@ -4493,11 +4504,11 @@ function AccessDetailsPoc({
       ? { tier: planChange.targetTier, period: planChange.targetPeriod }
       : undefined,
   };
-  const isCardSubscription = Boolean(access.subscription?.canManage);
   const isRecurring = access.kind === "monthly" || access.kind === "annual";
   const isManualPixAccess = isRecurring && !isCardSubscription;
-  const canRenewPix = status === "expired" && Boolean(access.renewal?.pix) && !access.renewal?.card;
-  const canChangeExpiredPix = canRenewPix && isManualPixAccess;
+  const canRenewPix = (status === "expired" && Boolean(access.renewal?.pix) && !access.renewal?.card)
+    || (status === "active" && Boolean(access.renewal?.earlyPix));
+  const canChangeExpiredPix = canRenewPix && isManualPixAccess && !access.pixRenewal;
   const canRenewCard = status === "expired"
     && access.subscription?.paymentMethod === "card"
     && access.billingStatus === "canceled";
@@ -4640,6 +4651,7 @@ function AccessDetailsPoc({
         locale={locale}
         initialTier={tier}
         initialPeriod={period}
+        scheduled={status === "active"}
         busy={busy || renewingPix}
         error={error}
         onBack={() => {
@@ -4865,11 +4877,23 @@ function AccessDetailsPoc({
           body={error}
         />
       )}
-      {isManualPixAccess && status === "active" && (
+      {isManualPixAccess && status === "active" && !access.pixRenewal && (
         <StateBanner
           tone="pending"
           title="Renovação Pix"
-          body={`Seu acesso continua no plano atual até ${renewal}. Nessa data, você poderá escolher outro plano para renovar.`}
+          body={access.renewal?.earlyPix
+            ? `Você já pode renovar via Pix. Seu acesso atual continua ativo até ${renewal}; qualquer plano escolhido entra em vigor depois dessa data.`
+            : `Seu acesso continua no plano atual até ${renewal}. Nessa data, você poderá escolher outro plano para renovar.`}
+          action={access.renewal?.earlyPix
+            ? { label: renewingPix ? t("pixCreating") : "Renovar via Pix", onClick: () => setPixPlanSelectionOpen(true), disabled: renewingPix }
+            : undefined}
+        />
+      )}
+      {access.pixRenewal && (
+        <StateBanner
+          tone="pending"
+          title="Renovação Pix confirmada"
+          body={`Pagamento confirmado. Seu plano atual continua ativo até ${formatDate(locale, access.pixRenewal.effectiveAt)}; depois disso, você passa para ${access.pixRenewal.targetTier === "ouro" ? "Ouro" : access.pixRenewal.targetTier === "prata" ? "Prata" : "Bronze"} ${access.pixRenewal.targetPeriod === "annual" ? "Anual" : "Mensal"}.`}
         />
       )}
       {status === "canceling" && (
@@ -4961,6 +4985,7 @@ function ExpiredPixPlanSelector({
   locale,
   initialTier,
   initialPeriod,
+  scheduled,
   busy,
   error,
   onBack,
@@ -4970,6 +4995,7 @@ function ExpiredPixPlanSelector({
   locale: Locale;
   initialTier: PocTier;
   initialPeriod: PocPeriod;
+  scheduled?: boolean;
   busy: boolean;
   error: string;
   onBack: () => void;
@@ -4996,7 +5022,9 @@ function ExpiredPixPlanSelector({
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">Renovação Pix</p>
         <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">Escolha o plano para renovar</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Ao gerar o Pix, sua licença será reativada no plano selecionado assim que o pagamento for confirmado.
+          {scheduled
+            ? "Ao confirmar o Pix, seu acesso atual continua até o vencimento. O plano selecionado entra em vigor no próximo período."
+            : "Ao gerar o Pix, sua licença será reativada no plano selecionado assim que o pagamento for confirmado."}
         </p>
         {error && <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</p>}
         <div className="mt-8 inline-flex rounded-lg border border-border bg-card p-1">
@@ -5256,7 +5284,10 @@ function MyAccessPage({
       if (!response.ok || payload.success === false) throw new Error(payload.error || t("genericError"));
       if (payload.status === "paid") {
         setRenewalPixOrder(null);
+        pixRenewalStarted.current = false;
+        setRenewingPix(false);
         await refreshAccess();
+        setNotice("");
       } else if (payload.status === "expired" || payload.status === "failed") {
         setRenewalPixOrder((value) => value ? { ...value, status: payload.status } : value);
       }
