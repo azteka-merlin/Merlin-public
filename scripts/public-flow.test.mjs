@@ -20,6 +20,15 @@ test("launcher handoff is exchanged before loading Meu acesso", () => {
   assert.match(app, /window\.history\.replaceState\(\{\}, "", "\/meu-acesso"\)/);
 });
 
+test("header opens Meu acesso immediately and expired sessions use the existing login", () => {
+  const header = app.slice(app.indexOf("function AppHeader("), app.indexOf("function MarketingCta("));
+  assert.equal((header.match(/href="\/meu-acesso"/g) || []).length, 2);
+  assert.doesNotMatch(header, /fetch\("\/api\/public\/access\/session"/);
+  assert.match(app, /if \(response\.status === 401 && redirectToLogin\) \{\s*window\.location\.replace\("\/download\?access=me"\)/);
+  assert.match(app, /void refreshAccess\(true\)/);
+  assert.match(app, /t\("accessSessionLoading"\)/);
+});
+
 test("Meu acesso keeps translation props unambiguous", () => {
   const accessComponentTags = app.match(/<(?:ChangeView|PreviewView|Overview)\b[^>]*>/gs) || [];
   for (const tag of accessComponentTags) {

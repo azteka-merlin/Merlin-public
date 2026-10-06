@@ -541,7 +541,6 @@ function AppHeader({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const nav = [
     ["o-que-e", t("navWhat")],
-    ["como-funciona", t("navHow")],
     ["seguranca", t("navSecurity")],
     ["feedbacks", t("navFeedbacks")],
     ["planos", t("navPlans")],
@@ -647,6 +646,14 @@ function AppHeader({
                       {t("downloadMerlin")}
                     </a>
                   </Dialog.Close>
+                  <Dialog.Close asChild>
+                    <a
+                      href="/meu-acesso"
+                      className="flex min-h-12 items-center border-b border-border/70 px-1 text-base font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:text-primary"
+                    >
+                      {t("myAccess")}
+                    </a>
+                  </Dialog.Close>
                 </nav>
                 <div className="mt-auto border-t border-border pt-5">
                   <label className="mb-2 block text-sm font-medium text-foreground" htmlFor="mobile-language">
@@ -709,6 +716,12 @@ function AppHeader({
             className="whitespace-nowrap text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
           >
             {t("download")}
+          </a>
+          <a
+            href="/meu-acesso"
+            className="whitespace-nowrap text-sm text-muted-foreground transition-colors duration-200 hover:text-primary"
+          >
+            {t("myAccess")}
           </a>
         </nav>
         <div className="flex shrink-0 items-center gap-3">
@@ -5142,11 +5155,15 @@ function MyAccessPage({
     return params.get("pending") === "1" || params.get("opening-portal") === "1";
   }, []);
 
-  const refreshAccess = useCallback(async () => {
+  const refreshAccess = useCallback(async (redirectToLogin = false) => {
     const response = await fetch("/api/public/access/session", {
       cache: "no-store",
     });
     const payload = await response.json().catch(() => ({}));
+    if (response.status === 401 && redirectToLogin) {
+      window.location.replace("/download?access=me");
+      return false;
+    }
     if (!response.ok || payload.success === false)
       throw new Error(
         payload.error || t("accessSessionError"),
@@ -5154,6 +5171,7 @@ function MyAccessPage({
     setAccess(payload as AccessDetailsPayload);
     setCsrfToken(String(payload.csrfToken || ""));
     setError("");
+    return true;
   }, [t]);
 
   useEffect(() => {
@@ -5182,15 +5200,18 @@ function MyAccessPage({
       return undefined;
     }
     if (isPendingWindow) return undefined;
-    void refreshAccess()
-      .catch((reason) =>
+    void refreshAccess(true)
+      .catch((reason) => {
         setError(
           reason instanceof Error
             ? reason.message
             : t("accessSessionError"),
-        ),
-      )
-      .finally(() => setLoading(false));
+        );
+        return true;
+      })
+      .then((ready) => {
+        if (ready) setLoading(false);
+      });
     const onFocus = () => {
       void refreshAccess().catch(() => undefined);
     };
