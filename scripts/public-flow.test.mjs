@@ -147,6 +147,9 @@ test("Pix renewal filters disabled periods and translates every selection label"
   const selector = app.slice(app.indexOf("function ExpiredPixPlanSelector("), app.indexOf("function StatusModalView("));
   assert.match(selector, /periodEnabled && pixEnabled/);
   assert.match(selector, /billing\.paymentMethods\.pixSemiannual/);
+  assert.match(selector, /const availablePeriods = \(\["monthly", "semiannual", "annual"\] as PocPeriod\[\]\)\.filter/);
+  assert.match(selector, /availablePeriods\.map\(\(candidate\) =>/);
+  assert.doesNotMatch(selector, /\(\["monthly", "semiannual", "annual"\] as PocPeriod\[\]\)\.map/);
   assert.match(selector, /available\(candidate, period\) \? getTierPrice/);
   assert.match(selector, /t\("accessPixRenewalChoose"\)/);
   assert.match(selector, /t\("accessPixRenewalGenerate"\)/);

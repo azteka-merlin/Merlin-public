@@ -5099,6 +5099,9 @@ function ExpiredPixPlanSelector({
     return billing.signupEnabled && billing.billingEnabled && billing.plansEnabled && billing.paymentMethods.pix
       && periodEnabled && pixEnabled && Boolean(getTierPrice(billing, "pix", candidateTier, candidatePeriod));
   };
+  const availablePeriods = (["monthly", "semiannual", "annual"] as PocPeriod[]).filter((candidatePeriod) =>
+    (["bronze", "prata", "ouro"] as PocTier[]).some((candidateTier) => available(candidateTier, candidatePeriod)),
+  );
   const price = available(tier, period) ? getTierPrice(billing, "pix", tier, period) : null;
   // A previously purchased period can be disabled after purchase. Never leave
   // its unavailable option selected when another renewal is on sale.
@@ -5129,12 +5132,12 @@ function ExpiredPixPlanSelector({
             : t("accessPixRenewalExpiredBody")}
         </p>
         {error && <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</p>}
-        <div className="mt-8 inline-flex rounded-lg border border-border bg-card p-1">
-          {(["monthly", "semiannual", "annual"] as PocPeriod[]).map((candidate) => (
+        {availablePeriods.length > 0 && <div className="mt-8 inline-flex rounded-lg border border-border bg-card p-1">
+          {availablePeriods.map((candidate) => (
             <button
               key={candidate}
               type="button"
-              disabled={busy || !(["bronze", "prata", "ouro"] as PocTier[]).some((candidateTier) => available(candidateTier, candidate))}
+              disabled={busy}
               onClick={() => {
                 setPeriod(candidate);
                 if (!available(tier, candidate)) {
@@ -5147,7 +5150,7 @@ function ExpiredPixPlanSelector({
               {t(candidate === "monthly" ? "accessPeriodMonthly" : candidate === "semiannual" ? "accessPeriodSemiannual" : "accessPeriodAnnual")}
             </button>
           ))}
-        </div>
+        </div>}
         <div className="mt-7 grid gap-3 md:grid-cols-3">
           {(["bronze", "prata", "ouro"] as PocTier[]).map((candidate) => {
             const candidatePrice = available(candidate, period) ? getTierPrice(billing, "pix", candidate, period) : null;
