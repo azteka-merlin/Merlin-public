@@ -47,7 +47,7 @@ As referências em `src/poc/MeuAcessoPoc.tsx` e `src/poc/accessScenarios.ts` def
 
 Não copiar dados mockados, estados internos, regras comerciais ou fluxos de pagamento da POC.
 
-`Meu acesso` continua como uma modal sobre `/download`: o fundo da página pública permanece intacto. No desktop, a modal deve comportar a grade de duas colunas da POC sem sobreposição. No mobile, os cards devem empilhar sem overflow horizontal.
+O sistema atual possui a página autenticada `/meu-acesso` e mantém a modal sobre `/download` para identificação e retornos existentes. Não recriar nenhum dos dois fluxos em uma task visual. A modal preserva o fundo da página pública e a página reutiliza os contratos autenticados por sessão e CSRF. No desktop, os detalhes devem comportar a grade de duas colunas sem sobreposição; no mobile, os cards devem empilhar sem overflow horizontal.
 
 ## Procedimento obrigatório
 

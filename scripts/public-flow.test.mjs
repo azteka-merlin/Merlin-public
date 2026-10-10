@@ -60,14 +60,14 @@ test("Pix renewal is protected, can be scheduled before expiry, and confirms vis
   assert.match(app, /\/api\/public\/access\/session\/renewal\/pix/);
   assert.match(app, /access\.renewal\?\.earlyPix/);
   assert.match(app, /const canChangeExpiredPix = canRenewPix && isManualPixAccess && !access\.pixRenewal/);
-  assert.match(app, /label: renewingPix \? t\("pixCreating"\) : "Renovar via Pix"/);
-  assert.match(app, /onClick: \(\) => onRenewPix\(\)/);
+  assert.match(app, /label: renewingPix \? t\("pixCreating"\) : t\("accessPixRenew"\)/);
+  assert.match(app, /onClick: \(\) => void requestPixRenewal\(\)/);
   assert.match(app, /onRenewPix\(target\)/);
   assert.match(app, /planTier: target\.tier, planType: target\.period/);
   assert.match(app, /function ExpiredPixPlanSelector/);
   assert.match(app, /aria-label="Pagamento Pix"/);
   assert.match(app, /setRenewalPixOrder\(null\);[\s\S]{0,180}await refreshAccess\(\);/);
-  assert.match(app, /Renovação Pix confirmada/);
+  assert.match(app, /t\("accessPixRenewalConfirmed"\)/);
   assert.match(app, /status === "active" && !access\.pixRenewal/);
   assert.match(app, /pixRenewalStarted\.current = false;\s*setRenewingPix\(false\);/);
   assert.match(app, /onChange=\{canChangeExpiredPix \? \(\) => setPixPlanSelectionOpen\(true\) : beginChange\}/);
@@ -118,9 +118,37 @@ test("Pix renewal visibly enters a single-flight loading state and allows a retr
   assert.match(app, /const \[renewingPix, setRenewingPix\] = useState\(false\)/);
   assert.match(app, /if \(pixRenewalStarted\.current\) return;/);
   assert.match(app, /pixRenewalStarted\.current = true;\s*setRenewingPix\(true\)/);
-  assert.match(app, /label: renewingPix \? t\("pixCreating"\) : "Renovar via Pix"/);
+  assert.match(app, /label: renewingPix \? t\("pixCreating"\) : t\("accessPixRenew"\)/);
   assert.match(app, /disabled: renewingPix/);
   assert.match(app, /function startNewPixRenewal\(\) \{\s*pixRenewalStarted\.current = false;/);
   assert.match(app, /await onRenewPix\(target\)/);
   assert.match(app, /busy=\{busy \|\| renewingPix\}/);
+});
+
+test("the legacy modal preserves the selected Pix tier and period through trusted renewal", () => {
+  const modal = app.slice(app.indexOf("async function startRenewal("), app.indexOf("function StatusModalView("));
+  assert.match(modal, /onRenewPix=\{async \(target\) => \{ await startRenewal\("pix", target \|\|/);
+  assert.match(modal, /planType: target\?\.period \|\| renewalPlan/);
+  assert.match(modal, /planTier: target\?\.tier \|\| current\.planTier/);
+  assert.match(modal, /\/api\/public\/access\/session\/renewal\/pix/);
+  assert.match(modal, /"x-merlin-access-csrf": session\.csrfToken/);
+  assert.match(modal, /if \(target\) throw error/);
+});
+
+test("Meu acesso prices the actual payment method and handles direct renewal errors visibly", () => {
+  assert.match(app, /getTierPrice\(billing, scenario\.payment, tier, period\)/);
+  const handler = app.slice(app.indexOf("async function requestPixRenewal("), app.indexOf("function beginChange("));
+  assert.match(handler, /await onRenewPix\(target\)/);
+  assert.match(handler, /setError\(cause instanceof Error/);
+  assert.match(handler, /setBusy\(false\)/);
+});
+
+test("Pix renewal filters disabled periods and translates every selection label", () => {
+  const selector = app.slice(app.indexOf("function ExpiredPixPlanSelector("), app.indexOf("function StatusModalView("));
+  assert.match(selector, /periodEnabled && pixEnabled/);
+  assert.match(selector, /billing\.paymentMethods\.pixSemiannual/);
+  assert.match(selector, /available\(candidate, period\) \? getTierPrice/);
+  assert.match(selector, /t\("accessPixRenewalChoose"\)/);
+  assert.match(selector, /t\("accessPixRenewalGenerate"\)/);
+  assert.doesNotMatch(selector, />Semestral<|>Gerar Pix<|>Indisponível</);
 });

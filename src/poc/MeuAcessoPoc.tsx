@@ -78,11 +78,11 @@ function planPrice(tier: PocTier, period: PocPeriod) {
 }
 
 function periodLabel(t: TFn, period?: PocPeriod) {
-  return period === "annual" ? t("accessPeriodAnnual") : t("accessPeriodMonthly");
+  return period === "annual" ? t("accessPeriodAnnual") : period === "semiannual" ? t("accessPeriodSemiannual") : t("accessPeriodMonthly");
 }
 
 function periodSuffix(t: TFn, period?: PocPeriod) {
-  return period === "annual" ? t("accessPeriodAnnualSuffix") : t("accessPeriodMonthlySuffix");
+  return period === "annual" ? t("accessPeriodAnnualSuffix") : period === "semiannual" ? t("accessPeriodSemiannualSuffix") : t("accessPeriodMonthlySuffix");
 }
 
 function currentTier(scenario: PocScenario) {
@@ -174,7 +174,7 @@ export function MeuAcessoPoc() {
   const targetIsDowngrade = resolvedTarget
     ? ["bronze", "prata", "ouro"].indexOf(resolvedTarget.tier) <
         ["bronze", "prata", "ouro"].indexOf(tier) ||
-      (period === "annual" && resolvedTarget.period === "monthly")
+      ({ monthly: 1, semiannual: 6, annual: 12 }[period] > { monthly: 1, semiannual: 6, annual: 12 }[resolvedTarget.period])
     : false;
   const dueNow = resolvedTarget
     ? targetIsDowngrade

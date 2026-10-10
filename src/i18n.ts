@@ -1776,6 +1776,128 @@ export const dictionaries: Record<Locale, Dict> = {
   de,
 };
 
+const semiannualCopy: Record<Locale, Dict> = {
+  ptbr: {
+    semiannualTitle: "Semestral", semiannualPeriod: "/ 6 meses", accessPeriodSemiannual: "Semestral", accessPeriodSemiannualSuffix: "a cada 6 meses",
+    paymentCardSemiannual: "Renova automaticamente a cada 6 meses.",
+    paymentPixSemiannual: "6 meses de acesso. Depois, renove manualmente por Pix para continuar.",
+    paymentMethodSemiannualHint: "Escolha como pagar pelos próximos 6 meses de acesso.",
+    pixNoAutoSemiannualBody: "Seu acesso fica ativo por 6 meses após a confirmação do Pix.",
+    pixSemiannualBody: "Assim que o pagamento for confirmado, seus 6 meses de acesso começam.",
+    pixSemiannualFootnote: "Este pagamento não cria cobrança automática. Você poderá renovar por Pix para continuar depois dos 6 meses.",
+    semiannualManualActiveBody: "Seu acesso semestral por Pix está ativo. Você pode renovar antes do fim do período.",
+    renewSemiannualAccessBody: "Seu acesso semestral terminou. Escolha como ativar mais 6 meses usando a mesma chave.",
+  },
+  en: {
+    semiannualTitle: "Six months", semiannualPeriod: "/ 6 months", accessPeriodSemiannual: "Six months", accessPeriodSemiannualSuffix: "every 6 months",
+    paymentCardSemiannual: "Automatically renews every 6 months.",
+    paymentPixSemiannual: "6 months of access. Renew manually with Pix to continue.",
+    paymentMethodSemiannualHint: "Choose how to pay for your next 6 months of access.",
+    pixNoAutoSemiannualBody: "Your access lasts 6 months after your Pix payment is confirmed.",
+    pixSemiannualBody: "Your 6 months of access start once your payment is confirmed.",
+    pixSemiannualFootnote: "This payment does not create automatic charges. You can renew with Pix after 6 months.",
+    semiannualManualActiveBody: "Your six-month Pix access is active. You can renew before the period ends.",
+    renewSemiannualAccessBody: "Your six-month access has ended. Choose how to activate another 6 months with the same key.",
+  },
+  es: {
+    semiannualTitle: "Semestral", semiannualPeriod: "/ 6 meses", accessPeriodSemiannual: "Semestral", accessPeriodSemiannualSuffix: "cada 6 meses",
+    paymentCardSemiannual: "Se renueva automáticamente cada 6 meses.",
+    paymentPixSemiannual: "6 meses de acceso. Renueva manualmente con Pix para continuar.",
+    paymentMethodSemiannualHint: "Elige cómo pagar los próximos 6 meses de acceso.",
+    pixNoAutoSemiannualBody: "Tu acceso dura 6 meses desde que se confirma el pago con Pix.",
+    pixSemiannualBody: "Tus 6 meses de acceso comienzan cuando se confirma el pago.",
+    pixSemiannualFootnote: "Este pago no genera cobros automáticos. Puedes renovar con Pix después de 6 meses.",
+    semiannualManualActiveBody: "Tu acceso semestral con Pix está activo. Puedes renovar antes de que termine el período.",
+    renewSemiannualAccessBody: "Tu acceso semestral terminó. Elige cómo activar otros 6 meses con la misma clave.",
+  },
+  fr: {
+    semiannualTitle: "Semestriel", semiannualPeriod: "/ 6 mois", accessPeriodSemiannual: "Semestriel", accessPeriodSemiannualSuffix: "tous les 6 mois",
+    paymentCardSemiannual: "Renouvellement automatique tous les 6 mois.",
+    paymentPixSemiannual: "6 mois d'accès. Renouvelez manuellement avec Pix pour continuer.",
+    paymentMethodSemiannualHint: "Choisissez comment payer vos 6 prochains mois d'accès.",
+    pixNoAutoSemiannualBody: "Votre accès dure 6 mois après la confirmation du paiement Pix.",
+    pixSemiannualBody: "Vos 6 mois d'accès commencent dès la confirmation du paiement.",
+    pixSemiannualFootnote: "Ce paiement n'entraîne aucun prélèvement automatique. Vous pourrez renouveler avec Pix après 6 mois.",
+    semiannualManualActiveBody: "Votre accès semestriel via Pix est actif. Vous pouvez renouveler avant la fin de la période.",
+    renewSemiannualAccessBody: "Votre accès semestriel a pris fin. Choisissez comment activer 6 mois supplémentaires avec la même clé.",
+  },
+  de: {
+    semiannualTitle: "Halbjährlich", semiannualPeriod: "/ 6 Monate", accessPeriodSemiannual: "Halbjährlich", accessPeriodSemiannualSuffix: "alle 6 Monate",
+    paymentCardSemiannual: "Verlängert sich automatisch alle 6 Monate.",
+    paymentPixSemiannual: "6 Monate Zugang. Danach kannst du manuell mit Pix verlängern.",
+    paymentMethodSemiannualHint: "Wähle, wie du die nächsten 6 Monate Zugang bezahlen möchtest.",
+    pixNoAutoSemiannualBody: "Dein Zugang gilt 6 Monate ab Bestätigung der Pix-Zahlung.",
+    pixSemiannualBody: "Deine 6 Monate Zugang beginnen nach Bestätigung der Zahlung.",
+    pixSemiannualFootnote: "Diese Zahlung führt nicht zu automatischen Abbuchungen. Danach kannst du mit Pix verlängern.",
+    semiannualManualActiveBody: "Dein halbjährlicher Pix-Zugang ist aktiv. Du kannst vor Ablauf verlängern.",
+    renewSemiannualAccessBody: "Dein halbjährlicher Zugang ist abgelaufen. Wähle aus, wie du mit demselben Key weitere 6 Monate aktivierst.",
+  },
+};
+for (const locale of ["ptbr", "en", "es", "fr", "de"] as const) {
+  Object.assign(dictionaries[locale], semiannualCopy[locale]);
+}
+
+const pixRenewalCopy: Record<Locale, Dict> = {
+  ptbr: {
+    accessPixRenewalTitle: "Renovação Pix", accessPixRenew: "Renovar via Pix",
+    accessPixRenewalBack: "Voltar ao meu acesso", accessPixRenewalChoose: "Escolha o plano para renovar",
+    accessPixRenewalEarlyBody: "Você já pode renovar via Pix. Seu acesso atual continua ativo até {date}; qualquer plano escolhido entra em vigor depois dessa data.",
+    accessPixRenewalWaitingBody: "Seu acesso continua no plano atual até {date}. Nessa data, você poderá escolher outro plano para renovar.",
+    accessPixRenewalConfirmed: "Renovação Pix confirmada",
+    accessPixRenewalConfirmedBody: "Pagamento confirmado. Seu plano atual continua ativo até {date}; depois disso, você passa para {tier} {period}.",
+    accessPixRenewalScheduledBody: "Ao confirmar o Pix, seu acesso atual continua até o vencimento. O plano selecionado entra em vigor no próximo período.",
+    accessPixRenewalExpiredBody: "Sua licença será reativada no plano selecionado assim que o pagamento for confirmado.",
+    accessPixRenewalUnavailable: "Indisponível", accessPixRenewalSinglePayment: "Pagamento único via Pix para o próximo período.", accessPixRenewalGenerate: "Gerar Pix",
+  },
+  en: {
+    accessPixRenewalTitle: "Pix renewal", accessPixRenew: "Renew with Pix",
+    accessPixRenewalBack: "Back to my access", accessPixRenewalChoose: "Choose your renewal plan",
+    accessPixRenewalEarlyBody: "You can renew with Pix now. Your current access stays active until {date}; your selected plan takes effect after that date.",
+    accessPixRenewalWaitingBody: "Your current plan remains active until {date}. You can choose another renewal plan on that date.",
+    accessPixRenewalConfirmed: "Pix renewal confirmed",
+    accessPixRenewalConfirmedBody: "Payment confirmed. Your current plan stays active until {date}; then you move to {tier} ({period}).",
+    accessPixRenewalScheduledBody: "After Pix confirmation, your current access continues until its expiry date. The selected plan takes effect next period.",
+    accessPixRenewalExpiredBody: "Your license will be reactivated with the selected plan as soon as payment is confirmed.",
+    accessPixRenewalUnavailable: "Unavailable", accessPixRenewalSinglePayment: "One Pix payment for the next period.", accessPixRenewalGenerate: "Generate Pix",
+  },
+  es: {
+    accessPixRenewalTitle: "Renovación con Pix", accessPixRenew: "Renovar con Pix",
+    accessPixRenewalBack: "Volver a mi acceso", accessPixRenewalChoose: "Elige tu plan de renovación",
+    accessPixRenewalEarlyBody: "Ya puedes renovar con Pix. Tu acceso actual sigue activo hasta {date}; el plan elegido entra en vigor después de esa fecha.",
+    accessPixRenewalWaitingBody: "Tu plan actual sigue activo hasta {date}. Ese día podrás elegir otro plan para renovar.",
+    accessPixRenewalConfirmed: "Renovación con Pix confirmada",
+    accessPixRenewalConfirmedBody: "Pago confirmado. Tu plan actual sigue activo hasta {date}; después pasas a {tier} ({period}).",
+    accessPixRenewalScheduledBody: "Al confirmar el Pix, tu acceso actual continúa hasta su vencimiento. El plan elegido entra en vigor en el próximo período.",
+    accessPixRenewalExpiredBody: "Tu licencia se reactivará con el plan elegido en cuanto se confirme el pago.",
+    accessPixRenewalUnavailable: "No disponible", accessPixRenewalSinglePayment: "Un solo pago con Pix para el próximo período.", accessPixRenewalGenerate: "Generar Pix",
+  },
+  fr: {
+    accessPixRenewalTitle: "Renouvellement Pix", accessPixRenew: "Renouveler avec Pix",
+    accessPixRenewalBack: "Retour à mon accès", accessPixRenewalChoose: "Choisissez votre offre de renouvellement",
+    accessPixRenewalEarlyBody: "Vous pouvez déjà renouveler avec Pix. Votre accès actuel reste actif jusqu'au {date} ; l'offre choisie prendra effet après cette date.",
+    accessPixRenewalWaitingBody: "Votre offre actuelle reste active jusqu'au {date}. Vous pourrez choisir une autre offre à cette date.",
+    accessPixRenewalConfirmed: "Renouvellement Pix confirmé",
+    accessPixRenewalConfirmedBody: "Paiement confirmé. Votre offre actuelle reste active jusqu'au {date} ; vous passez ensuite à {tier} ({period}).",
+    accessPixRenewalScheduledBody: "Après confirmation du Pix, votre accès actuel continue jusqu'à son expiration. L'offre choisie prend effet à la prochaine période.",
+    accessPixRenewalExpiredBody: "Votre licence sera réactivée avec l'offre choisie dès la confirmation du paiement.",
+    accessPixRenewalUnavailable: "Indisponible", accessPixRenewalSinglePayment: "Un paiement Pix unique pour la prochaine période.", accessPixRenewalGenerate: "Générer le Pix",
+  },
+  de: {
+    accessPixRenewalTitle: "Pix-Verlängerung", accessPixRenew: "Mit Pix verlängern",
+    accessPixRenewalBack: "Zurück zu meinem Zugang", accessPixRenewalChoose: "Wähle deinen Verlängerungsplan",
+    accessPixRenewalEarlyBody: "Du kannst jetzt mit Pix verlängern. Dein aktueller Zugang bleibt bis {date} aktiv; der gewählte Plan gilt danach.",
+    accessPixRenewalWaitingBody: "Dein aktueller Plan bleibt bis {date} aktiv. Dann kannst du einen anderen Plan zur Verlängerung wählen.",
+    accessPixRenewalConfirmed: "Pix-Verlängerung bestätigt",
+    accessPixRenewalConfirmedBody: "Zahlung bestätigt. Dein aktueller Plan bleibt bis {date} aktiv; danach wechselst du zu {tier} ({period}).",
+    accessPixRenewalScheduledBody: "Nach der Pix-Bestätigung bleibt dein aktueller Zugang bis zum Ablaufdatum bestehen. Der gewählte Plan gilt ab dem nächsten Zeitraum.",
+    accessPixRenewalExpiredBody: "Deine Lizenz wird nach Zahlungsbestätigung mit dem gewählten Plan reaktiviert.",
+    accessPixRenewalUnavailable: "Nicht verfügbar", accessPixRenewalSinglePayment: "Einmalige Pix-Zahlung für den nächsten Zeitraum.", accessPixRenewalGenerate: "Pix erstellen",
+  },
+};
+for (const locale of ["ptbr", "en", "es", "fr", "de"] as const) {
+  Object.assign(dictionaries[locale], pixRenewalCopy[locale]);
+}
+
 export function detectBrowserLanguage(): Locale {
   const language = String(navigator.language || "pt").toLowerCase();
   if (language.startsWith("pt")) return "ptbr";

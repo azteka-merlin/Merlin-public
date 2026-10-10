@@ -33,9 +33,9 @@ import {
   type BillingPrice,
 } from "./ui";
 
-type PlanType = "monthly" | "annual" | "lifetime";
+type PlanType = "monthly" | "semiannual" | "annual" | "lifetime";
 type PlanTier = "bronze" | "prata" | "ouro";
-type BillingPeriod = "monthly" | "annual";
+type BillingPeriod = "monthly" | "semiannual" | "annual";
 type PaymentMethod = "card" | "pix";
 type FlowMode =
   | "register"
@@ -53,6 +53,7 @@ type BillingState = {
   billingEnabled: boolean;
   plansEnabled: boolean;
   monthlyEnabled: boolean;
+  semiannualEnabled: boolean;
   annualEnabled: boolean;
   lifetimeEnabled: boolean;
   monthlyCardTrial: { enabled: boolean; days: number };
@@ -60,6 +61,7 @@ type BillingState = {
     card: boolean;
     pix: boolean;
     pixMonthly: boolean;
+    pixSemiannual: boolean;
     pixAnnual: boolean;
     pixLifetime: boolean;
   };
@@ -110,7 +112,7 @@ type PixOrder = {
 type AccessDetailsPayload = {
   status: "found" | "not_found";
   access?: {
-    kind: "monthly" | "annual" | "lifetime" | "active";
+    kind: "monthly" | "semiannual" | "annual" | "lifetime" | "active";
     name?: string;
     current?: boolean;
     accessType?: string;
@@ -193,6 +195,7 @@ const INITIAL_BILLING_STATE: BillingState = {
   billingEnabled: false,
   plansEnabled: false,
   monthlyEnabled: false,
+  semiannualEnabled: false,
   annualEnabled: false,
   lifetimeEnabled: false,
   monthlyCardTrial: { enabled: false, days: 30 },
@@ -200,11 +203,13 @@ const INITIAL_BILLING_STATE: BillingState = {
     card: true,
     pix: false,
     pixMonthly: false,
+    pixSemiannual: false,
     pixAnnual: false,
     pixLifetime: false,
   },
   prices: {
     monthly: null,
+    semiannual: null,
     annual: null,
     lifetime: null,
     pixAnnual: null,
@@ -223,6 +228,7 @@ function parseBillingPayload(
     billingEnabled: Boolean(payload?.billing?.billingEnabled),
     plansEnabled: Boolean(payload?.billing?.plansEnabled),
     monthlyEnabled: Boolean(payload?.billing?.monthlyEnabled),
+    semiannualEnabled: Boolean(payload?.billing?.semiannualEnabled),
     annualEnabled: Boolean(payload?.billing?.annualEnabled),
     lifetimeEnabled: Boolean(payload?.billing?.lifetimeEnabled),
     monthlyCardTrial: {
@@ -236,6 +242,7 @@ function parseBillingPayload(
         payload?.billing?.paymentMethods?.pixMonthly !== undefined
           ? Boolean(payload?.billing?.paymentMethods?.pixMonthly)
           : Boolean(payload?.billing?.paymentMethods?.pix),
+      pixSemiannual: Boolean(payload?.billing?.paymentMethods?.pixSemiannual),
       pixAnnual:
         payload?.billing?.paymentMethods?.pixAnnual !== undefined
           ? Boolean(payload?.billing?.paymentMethods?.pixAnnual)
@@ -247,6 +254,7 @@ function parseBillingPayload(
     },
     prices: {
       monthly: payload?.billing?.prices?.monthly || null,
+      semiannual: null,
       annual: payload?.billing?.prices?.annual || null,
       lifetime: payload?.billing?.prices?.lifetime || null,
       pixAnnual: payload?.billing?.prices?.pixAnnual || null,
@@ -263,6 +271,7 @@ function planPriceToBillingPrice(price: PlanPrice | null): BillingPrice | null {
     amountCents: price.amountCents,
     currency: price.currency || "brl",
     recurringInterval: price.billingPeriod === "annual" ? "year" : "month",
+    recurringIntervalCount: price.billingPeriod === "semiannual" ? 6 : 1,
     active: price.active,
   };
 }
@@ -299,6 +308,7 @@ function tierCanBeSold(
   )
     return false;
   if (billingPeriod === "monthly" && !billing.monthlyEnabled) return false;
+  if (billingPeriod === "semiannual" && !billing.semiannualEnabled) return false;
   if (billingPeriod === "annual" && !billing.annualEnabled) return false;
   const hasCard =
     billing.paymentMethods.card &&
@@ -307,6 +317,8 @@ function tierCanBeSold(
     billing.paymentMethods.pix &&
     (billingPeriod === "monthly"
       ? billing.paymentMethods.pixMonthly
+      : billingPeriod === "semiannual"
+        ? billing.paymentMethods.pixSemiannual
       : billing.paymentMethods.pixAnnual) &&
     Boolean(getTierPrice(billing, "pix", planTier, billingPeriod));
   return hasCard || hasPix;
@@ -327,6 +339,7 @@ function planCanBeSold(billing: BillingState, plan: PlanType | null) {
   }
   if (plan === "monthly")
     return billing.monthlyEnabled && Boolean(billing.prices.monthly);
+  if (plan === "semiannual") return false;
   if (plan === "annual")
     return billing.annualEnabled && Boolean(billing.prices.annual);
   return billing.lifetimeEnabled && Boolean(billing.prices.lifetime);
@@ -342,7 +355,7 @@ function getPaymentPrice(
     billing.plansEnabled &&
     plan !== "lifetime" &&
     planTier &&
-    (plan === "monthly" || plan === "annual")
+    (plan === "monthly" || plan === "semiannual" || plan === "annual")
   ) {
     const method =
       paymentMethod ||
@@ -1285,15 +1298,18 @@ function TierPlanCards({
   const hasMonthly = PLAN_TIERS.some((plan) =>
     tierCanBeSold(billing, plan.tier, "monthly"),
   );
+  const hasSemiannual = PLAN_TIERS.some((plan) =>
+    tierCanBeSold(billing, plan.tier, "semiannual"),
+  );
   const hasAnnual = PLAN_TIERS.some((plan) =>
     tierCanBeSold(billing, plan.tier, "annual"),
   );
-  const activePeriod =
-    billingPeriod === "annual" && hasAnnual
-      ? "annual"
-      : hasMonthly
-        ? "monthly"
-        : "annual";
+  const availablePeriods: BillingPeriod[] = [
+    ...(hasMonthly ? ["monthly" as const] : []),
+    ...(hasSemiannual ? ["semiannual" as const] : []),
+    ...(hasAnnual ? ["annual" as const] : []),
+  ];
+  const activePeriod = availablePeriods.includes(billingPeriod) ? billingPeriod : availablePeriods[0] || "monthly";
   const [showComparison, setShowComparison] = useState(false);
 
   return (
@@ -1333,6 +1349,20 @@ function TierPlanCards({
               {t("monthlyTitle")}
             </button>
           )}
+          {hasSemiannual && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activePeriod === "semiannual"}
+              onClick={() => setBillingPeriod("semiannual")}
+              className={cx(
+                "relative z-10 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                activePeriod === "semiannual" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {t("semiannualTitle")}
+            </button>
+          )}
           {hasAnnual && (
             <button
               type="button"
@@ -1363,20 +1393,20 @@ function TierPlanCards({
       </div>
       <div className="mt-16 grid items-stretch gap-6 lg:grid-cols-3 lg:gap-7">
         {PLAN_TIERS.map((plan) => {
-          const cardPrice = getTierPrice(
+          const cardPrice = billing.paymentMethods.card ? getTierPrice(
             billing,
             "card",
             plan.tier,
             activePeriod,
-          );
-          const pixPrice = getTierPrice(
+          ) : null;
+          const pixPrice = billing.paymentMethods.pix && (activePeriod === "monthly" ? billing.paymentMethods.pixMonthly : activePeriod === "semiannual" ? billing.paymentMethods.pixSemiannual : billing.paymentMethods.pixAnnual) ? getTierPrice(
             billing,
             "pix",
             plan.tier,
             activePeriod,
-          );
+          ) : null;
           const displayPrice =
-            activePeriod === "annual"
+            activePeriod !== "monthly"
               ? pixPrice || cardPrice
               : cardPrice || pixPrice;
           const disabled = !tierCanBeSold(billing, plan.tier, activePeriod);
@@ -1437,9 +1467,7 @@ function TierPlanCards({
                     {formatMoney(locale, displayPrice)}
                   </span>
                   <span className="text-sm text-muted-foreground">
-                    {activePeriod === "annual"
-                      ? t("annualPeriod")
-                      : t("monthlyPeriod")}
+                    {t(activePeriod === "annual" ? "annualPeriod" : activePeriod === "semiannual" ? "semiannualPeriod" : "monthlyPeriod")}
                   </span>
                 </div>
                 {activePeriod === "monthly" ? (
@@ -1448,15 +1476,13 @@ function TierPlanCards({
                   </p>
                 ) : (
                   <>
-                    <p className="mt-1.5 text-xs text-muted-foreground">
-                      {t("priceInPix")}
-                    </p>
+                    {pixPrice && <p className="mt-1.5 text-xs text-muted-foreground">{t("priceInPix")}</p>}
                     {annualSavings && (
                       <p className="mt-3 text-sm font-medium text-primary">
                         {t("saveAmount", { amount: annualSavings })}
                       </p>
                     )}
-                    {cardPrice && (
+                    {cardPrice && pixPrice && cardPrice.amountCents !== pixPrice.amountCents && (
                       <p className="mt-1.5 text-xs text-muted-foreground/70">
                         {t("orPriceOnCard", {
                           price: formatMoney(locale, cardPrice),
@@ -1515,7 +1541,7 @@ function TierPlanCards({
               {tierDisplayName(selectedTier)}
             </span>{" "}
             ·{" "}
-            {activePeriod === "monthly" ? t("monthlyTitle") : t("annualTitle")}
+            {t(activePeriod === "annual" ? "annualTitle" : activePeriod === "semiannual" ? "semiannualTitle" : "monthlyTitle")}
           </p>
         )}
       </div>
@@ -1777,13 +1803,18 @@ function Plans({
     const hasMonthly = PLAN_TIERS.some((tier) =>
       tierCanBeSold(billing, tier.tier, "monthly"),
     );
+    const hasSemiannual = PLAN_TIERS.some((tier) =>
+      tierCanBeSold(billing, tier.tier, "semiannual"),
+    );
     const hasAnnual = PLAN_TIERS.some((tier) =>
       tierCanBeSold(billing, tier.tier, "annual"),
     );
-    if (!hasMonthly && hasAnnual && billingPeriod !== "annual")
-      setBillingPeriod("annual");
-    if (!hasAnnual && hasMonthly && billingPeriod !== "monthly")
-      setBillingPeriod("monthly");
+    const options: BillingPeriod[] = [
+      ...(hasMonthly ? ["monthly" as const] : []),
+      ...(hasSemiannual ? ["semiannual" as const] : []),
+      ...(hasAnnual ? ["annual" as const] : []),
+    ];
+    if (options.length && !options.includes(billingPeriod)) setBillingPeriod(options[0]);
   }, [billing, billingPeriod]);
   const [form, setForm] = useState({
     name: "",
@@ -1883,16 +1914,19 @@ function Plans({
     if (
       billing.plansEnabled &&
       nextPlan !== "lifetime" &&
-      (nextPlan === "monthly" || nextPlan === "annual")
+      (nextPlan === "monthly" || nextPlan === "semiannual" || nextPlan === "annual")
     ) {
       return (
         (nextPlan === "monthly"
           ? billing.paymentMethods.pixMonthly
+          : nextPlan === "semiannual"
+            ? billing.paymentMethods.pixSemiannual
           : billing.paymentMethods.pixAnnual) &&
         Boolean(planTier && getTierPrice(billing, "pix", planTier, nextPlan))
       );
     }
     if (nextPlan === "monthly") return billing.paymentMethods.pixMonthly;
+    if (nextPlan === "semiannual") return false;
     if (nextPlan === "annual") return billing.paymentMethods.pixAnnual;
     return billing.paymentMethods.pixLifetime;
   }
@@ -1901,7 +1935,7 @@ function Plans({
     if (
       billing.plansEnabled &&
       plan !== "lifetime" &&
-      (plan === "monthly" || plan === "annual")
+      (plan === "monthly" || plan === "semiannual" || plan === "annual")
     ) {
       return tierCanBeSold(billing, planTier, plan);
     }
@@ -1981,6 +2015,7 @@ function Plans({
     billing.signupEnabled,
     billing.billingEnabled,
     billing.monthlyEnabled,
+    billing.semiannualEnabled,
     billing.annualEnabled,
     billing.lifetimeEnabled,
     billing.prices.monthly,
@@ -2387,10 +2422,11 @@ function Plans({
   }
 
   const monthlyAvailable = planCanBeSold(billing, "monthly");
+  const semiannualAvailable = planCanBeSold(billing, "semiannual");
   const annualAvailable = planCanBeSold(billing, "annual");
   const lifetimeAvailable = planCanBeSold(billing, "lifetime");
   const paidPlansAvailable =
-    monthlyAvailable || annualAvailable || lifetimeAvailable;
+    monthlyAvailable || semiannualAvailable || annualAvailable || lifetimeAvailable;
   const freeSignupAvailable =
     billing.loaded && billing.signupEnabled && !billing.billingEnabled;
   const monthlyPixAvailable = pixAvailableForPlan("monthly");
@@ -2452,6 +2488,7 @@ function Plans({
     (!billing.signupEnabled || (billing.billingEnabled && !paidPlansAvailable));
   const activePlanCount = [
     monthlyAvailable,
+    semiannualAvailable,
     annualAvailable,
     lifetimeAvailable,
   ].filter(Boolean).length;
@@ -2668,7 +2705,7 @@ function Plans({
                               </p>
                               <p className="truncate text-sm font-medium">
                                 {billing.plansEnabled && plan !== "lifetime"
-                                  ? `${tierDisplayName(planTier)} ${plan === "annual" ? t("annualTitle").toLowerCase() : t("monthlyTitle").toLowerCase()} • ${selectedPlanPrice}`
+                                  ? `${tierDisplayName(planTier)} ${t(plan === "annual" ? "annualTitle" : plan === "semiannual" ? "semiannualTitle" : "monthlyTitle").toLowerCase()} • ${selectedPlanPrice}`
                                   : plan === "monthly"
                                     ? `${t("monthlyTitle")} • ${selectedPlanPrice || monthlyPrice}`
                                     : plan === "annual"
@@ -3157,6 +3194,8 @@ function PaymentMethodSelector({
   const cardBody =
     plan === "monthly"
       ? monthlyCardBody
+      : plan === "semiannual"
+        ? t("paymentCardSemiannual")
       : plan === "annual"
         ? t("paymentCardAnnual")
         : discount
@@ -3165,6 +3204,8 @@ function PaymentMethodSelector({
   const pixBody =
     plan === "monthly"
       ? t("paymentPixMonthly")
+      : plan === "semiannual"
+        ? discount ? t("pixDiscountApplied", { amount: discount }) : t("paymentPixSemiannual")
       : plan === "annual"
         ? discount
           ? t("pixDiscountApplied", { amount: discount })
@@ -3179,17 +3220,19 @@ function PaymentMethodSelector({
     badge?: string;
   }> = [
     {
-      value: "card",
+      value: "card" as PaymentMethod,
       title: `${t("paymentCard")} • ${formatMoney(locale, cardPrice)}`,
       body: cardBody,
     },
     {
-      value: "pix",
+      value: "pix" as PaymentMethod,
       title: `${t("paymentPix")} • ${formatMoney(locale, pixPrice)}`,
       body: pixBody,
       badge: discount ? t("bestPrice") : undefined,
     },
-  ];
+  ].filter((method) => method.value === "card"
+    ? billing.paymentMethods.card && priceAmountCents(cardPrice) > 0
+    : billing.paymentMethods.pix && priceAmountCents(pixPrice) > 0);
 
   return (
     <fieldset>
@@ -3199,6 +3242,8 @@ function PaymentMethodSelector({
       <p className="mt-1 text-xs text-muted-foreground">
         {plan === "monthly"
           ? t("paymentMethodMonthlyHint")
+          : plan === "semiannual"
+            ? t("paymentMethodSemiannualHint")
           : plan === "annual"
             ? t("paymentMethodAnnualHint")
             : t("paymentMethodLifetimeHint")}
@@ -3250,13 +3295,13 @@ function PaymentMethodSelector({
           );
         })}
       </div>
-      {(plan === "monthly" || plan === "annual") && paymentMethod === "pix" && (
+      {(plan === "monthly" || plan === "semiannual" || plan === "annual") && paymentMethod === "pix" && (
         <div className="mt-3 rounded-xl border border-primary/15 bg-primary/[0.045] px-4 py-3">
           <p className="text-xs leading-relaxed text-muted-foreground">
             <span className="font-medium text-foreground">
               {t("pixNoAutoTitle")}
             </span>{" "}
-            {plan === "annual" ? t("pixNoAutoAnnualBody") : t("pixNoAutoBody")}
+            {plan === "annual" ? t("pixNoAutoAnnualBody") : plan === "semiannual" ? t("pixNoAutoSemiannualBody") : t("pixNoAutoBody")}
           </p>
         </div>
       )}
@@ -3310,6 +3355,8 @@ function PixPaymentPanel({
               ? t("pixErrorBody")
               : plan === "monthly"
                 ? t("pixMonthlyBody")
+                : plan === "semiannual"
+                  ? t("pixSemiannualBody")
                 : plan === "annual"
                   ? t("pixAnnualBody")
                   : t("pixLifetimeBody")}
@@ -3361,9 +3408,9 @@ function PixPaymentPanel({
           {t("pixWaiting")}
         </div>
       )}
-      {!isExpired && !isFailed && (plan === "monthly" || plan === "annual") && (
+      {!isExpired && !isFailed && (plan === "monthly" || plan === "semiannual" || plan === "annual") && (
         <p className="mx-auto mt-4 max-w-[430px] text-center text-xs leading-relaxed text-muted-foreground/80">
-          {plan === "annual" ? t("pixAnnualFootnote") : t("pixMonthlyFootnote")}
+          {plan === "annual" ? t("pixAnnualFootnote") : plan === "semiannual" ? t("pixSemiannualFootnote") : t("pixMonthlyFootnote")}
         </p>
       )}
       <div className="mt-6 grid gap-3">
@@ -3865,10 +3912,10 @@ function AccessModal({
     await loadAccess();
   }
 
-  async function startRenewal(method: PaymentMethod) {
+  async function startRenewal(method: PaymentMethod, target?: { tier: PocTier; period: PocPeriod }) {
     const current = access?.access;
     if (!current?.name) return;
-    const renewalPlan = current.kind === "annual" ? "annual" : "monthly";
+    const renewalPlan = current.kind === "annual" ? "annual" : current.kind === "semiannual" ? "semiannual" : "monthly";
     setLoading(true);
     setMessage(method === "pix" ? t("pixCreating") : t("checkoutLoading"));
     try {
@@ -3877,14 +3924,28 @@ function AccessModal({
         contact: normalizeEmail(email),
         recoveryPin,
         acceptedRecoveryNotice: true,
-        planType: renewalPlan,
+        planType: target?.period || renewalPlan,
+        planTier: target?.tier || current.planTier || "ouro",
       };
       if (method === "pix") {
-        const payload = await postJson<PixOrder>(
-          "/api/public/pix/orders",
-          { ...body, mercadoPagoDeviceId: getMercadoPagoDeviceId() },
+        // Reuse the same authenticated renewal flow as the Meu acesso page.
+        // The API chooses reactivation versus prepaid renewal, not the browser.
+        const session = await postJson<{ csrfToken: string }>(
+          "/api/public/access/session",
+          { email: normalizeEmail(email), recoveryPin, rememberDevice: false },
           t("genericError"),
         );
+        const response = await fetch("/api/public/access/session/renewal/pix", {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-merlin-access-csrf": session.csrfToken },
+          body: JSON.stringify({
+            planTier: body.planTier,
+            planType: body.planType,
+            mercadoPagoDeviceId: getMercadoPagoDeviceId() || undefined,
+          }),
+        });
+        const payload = await response.json() as PixOrder & { success?: boolean; error?: string };
+        if (!response.ok || payload.success === false) throw new Error(payload.error || t("genericError"));
         localStorage.setItem("merlin_checkout_email", normalizeEmail(email));
         setRenewalPixOrder(payload);
         setRenewalPixCopied(false);
@@ -3902,6 +3963,7 @@ function AccessModal({
     } catch (error) {
       setMessage(error instanceof Error ? error.message : t("genericError"));
       setLoading(false);
+      if (target) throw error;
     }
   }
 
@@ -3948,6 +4010,7 @@ function AccessModal({
             : value,
         );
         setRenewalPixOrder(null);
+        await loadAccess();
         setMessage(t("paymentApprovedText"));
         return "paid";
       }
@@ -3993,7 +4056,9 @@ function AccessModal({
   const current = access?.access;
   const subscription = current?.subscription;
   const isMonthly = current?.kind === "monthly";
+  const isSemiannual = current?.kind === "semiannual";
   const isAnnual = current?.kind === "annual";
+  const isRecurring = isMonthly || isSemiannual || isAnnual;
   const isLifetime = current?.kind === "lifetime";
   const upgradePrice = current?.upgrade?.price
     ? formatMoney(locale, current.upgrade.price)
@@ -4020,7 +4085,7 @@ function AccessModal({
             onClose={onClose}
             onBackToPlans={onBackToPlans}
             onPortal={openSubscriptionPortal}
-            onRenewPix={async () => { await startRenewal("pix"); }}
+            onRenewPix={async (target) => { await startRenewal("pix", target || { tier: currentTier, period: isAnnual ? "annual" : isSemiannual ? "semiannual" : "monthly" }); }}
             onRenewCard={() => void startCardRenewal()}
             renewingPix={loading}
             renewingCard={loading}
@@ -4201,8 +4266,8 @@ function AccessModal({
                     {t("currentPlan")}
                   </p>
                   <p className="mt-1 text-lg font-bold">
-                    {isMonthly || isAnnual
-                      ? `${currentTier.charAt(0).toUpperCase()}${currentTier.slice(1)} ${isAnnual ? t("annualTitle") : t("monthlyTitle")}`
+                    {isRecurring
+                      ? `${currentTier.charAt(0).toUpperCase()}${currentTier.slice(1)} ${isAnnual ? t("annualTitle") : isSemiannual ? t("semiannualTitle") : t("monthlyTitle")}`
                       : isLifetime
                         ? t("lifetimeTitle")
                         : t("activeAccessTitle")}
@@ -4217,7 +4282,7 @@ function AccessModal({
                   )}
                 </span>
               </div>
-              {(isMonthly || isAnnual) && (
+              {isRecurring && (
                 <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
                   <InfoItem
                     label={
@@ -4264,8 +4329,11 @@ function AccessModal({
                     {t("annualManualActiveBody")}
                   </p>
                 )}
+              {isSemiannual && current.current !== false && !subscription?.canManage && (
+                <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{t("semiannualManualActiveBody")}</p>
+              )}
             </div>
-            {(isMonthly || isAnnual) &&
+            {isRecurring &&
               current.current === false &&
               current.renewal?.available && (
                 <div className="rounded-xl border border-primary/35 bg-primary/10 p-5">
@@ -4276,9 +4344,7 @@ function AccessModal({
                     {t("renewAccessTitle")}
                   </h4>
                   <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                    {isAnnual
-                      ? t("renewAnnualAccessBody")
-                      : t("renewAccessBody")}
+                    {isAnnual ? t("renewAnnualAccessBody") : isSemiannual ? t("renewSemiannualAccessBody") : t("renewAccessBody")}
                   </p>
                   {current.renewal.price && (
                     <p className="mt-5 font-display text-3xl font-bold">
@@ -4308,7 +4374,7 @@ function AccessModal({
                   </div>
                 </div>
               )}
-            {(isMonthly || isAnnual) &&
+            {isRecurring &&
               current.current === false &&
               !current.renewal?.available && (
                 <div className="rounded-xl border border-border bg-background/50 p-5">
@@ -4338,7 +4404,7 @@ function AccessModal({
                 </div>
               </div>
             )}
-            {(isMonthly || isAnnual) &&
+            {isRecurring &&
               current.current !== false &&
               subscription?.canManage && (
                 <Button
@@ -4476,7 +4542,7 @@ function AccessDetailsPoc({
   const [error, setError] = useState("");
   const externalRedirectStarted = useRef(false);
 
-  const period: PocPeriod = access.kind === "annual" ? "annual" : "monthly";
+  const period: PocPeriod = access.kind === "annual" ? "annual" : access.kind === "semiannual" ? "semiannual" : "monthly";
   const tier: PocTier = access.planTier || "ouro";
   const planChange = access.planChange;
   const isCardSubscription = Boolean(access.subscription?.canManage);
@@ -4517,7 +4583,7 @@ function AccessDetailsPoc({
       ? { tier: planChange.targetTier, period: planChange.targetPeriod }
       : undefined,
   };
-  const isRecurring = access.kind === "monthly" || access.kind === "annual";
+  const isRecurring = access.kind === "monthly" || access.kind === "semiannual" || access.kind === "annual";
   const isManualPixAccess = isRecurring && !isCardSubscription;
   const canRenewPix = (status === "expired" && Boolean(access.renewal?.pix) && !access.renewal?.card)
     || (status === "active" && Boolean(access.renewal?.earlyPix));
@@ -4529,8 +4595,8 @@ function AccessDetailsPoc({
     && !canRenewPix
     && ["past_due", "unpaid"].includes(access.billingStatus || "");
   const periodEnabled = (candidate: PocPeriod) =>
-    candidate === "monthly" ? billing.monthlyEnabled : billing.annualEnabled;
-  const availablePeriods = (["monthly", "annual"] as PocPeriod[]).filter(
+    candidate === "monthly" ? billing.monthlyEnabled : candidate === "semiannual" ? billing.semiannualEnabled : billing.annualEnabled;
+  const availablePeriods = (["monthly", "semiannual", "annual"] as PocPeriod[]).filter(
     (candidate) =>
       periodEnabled(candidate) &&
       (["bronze", "prata", "ouro"] as PocTier[]).some((candidateTier) =>
@@ -4551,10 +4617,23 @@ function AccessDetailsPoc({
     status !== "canceling" &&
     status !== "canceled",
   );
-  const currentPrice =
-    getTierPrice(billing, "card", tier, period)?.amountCents ??
-    getTierPrice(billing, "pix", tier, period)?.amountCents ??
-    null;
+  const currentPrice = scenario.payment === "none" ? null
+    : getTierPrice(billing, scenario.payment, tier, period)?.amountCents ?? null;
+
+  async function requestPixRenewal(target?: { tier: PocTier; period: PocPeriod }) {
+    if (busy || renewingPix) return false;
+    setBusy(true);
+    setError("");
+    try {
+      await onRenewPix(target);
+      return true;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t("genericError"));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
 
   function beginChange() {
     if (!canChange) return;
@@ -4662,6 +4741,7 @@ function AccessDetailsPoc({
       <ExpiredPixPlanSelector
         billing={billing}
         locale={locale}
+        t={t}
         initialTier={tier}
         initialPeriod={period}
         scheduled={status === "active"}
@@ -4673,17 +4753,7 @@ function AccessDetailsPoc({
           setPixPlanSelectionOpen(false);
         }}
         onGenerate={async (target) => {
-          if (busy || renewingPix) return;
-          setBusy(true);
-          setError("");
-          try {
-            await onRenewPix(target);
-            setPixPlanSelectionOpen(false);
-          } catch (cause) {
-            setError(cause instanceof Error ? cause.message : t("genericError"));
-          } finally {
-            setBusy(false);
-          }
+          if (await requestPixRenewal(target)) setPixPlanSelectionOpen(false);
         }}
       />
     );
@@ -4893,20 +4963,23 @@ function AccessDetailsPoc({
       {isManualPixAccess && status === "active" && !access.pixRenewal && (
         <StateBanner
           tone="pending"
-          title="Renovação Pix"
+          title={t("accessPixRenewalTitle")}
           body={access.renewal?.earlyPix
-            ? `Você já pode renovar via Pix. Seu acesso atual continua ativo até ${renewal}; qualquer plano escolhido entra em vigor depois dessa data.`
-            : `Seu acesso continua no plano atual até ${renewal}. Nessa data, você poderá escolher outro plano para renovar.`}
+            ? t("accessPixRenewalEarlyBody").replace("{date}", renewal)
+            : t("accessPixRenewalWaitingBody").replace("{date}", renewal)}
           action={access.renewal?.earlyPix
-            ? { label: renewingPix ? t("pixCreating") : "Renovar via Pix", onClick: () => setPixPlanSelectionOpen(true), disabled: renewingPix }
+            ? { label: renewingPix ? t("pixCreating") : t("accessPixRenew"), onClick: () => setPixPlanSelectionOpen(true), disabled: renewingPix }
             : undefined}
         />
       )}
       {access.pixRenewal && (
         <StateBanner
           tone="pending"
-          title="Renovação Pix confirmada"
-          body={`Pagamento confirmado. Seu plano atual continua ativo até ${formatDate(locale, access.pixRenewal.effectiveAt)}; depois disso, você passa para ${access.pixRenewal.targetTier === "ouro" ? "Ouro" : access.pixRenewal.targetTier === "prata" ? "Prata" : "Bronze"} ${access.pixRenewal.targetPeriod === "annual" ? "Anual" : "Mensal"}.`}
+          title={t("accessPixRenewalConfirmed")}
+          body={t("accessPixRenewalConfirmedBody")
+            .replace("{date}", formatDate(locale, access.pixRenewal.effectiveAt))
+            .replace("{tier}", tierDisplayName(access.pixRenewal.targetTier))
+            .replace("{period}", t(access.pixRenewal.targetPeriod === "annual" ? "accessPeriodAnnual" : access.pixRenewal.targetPeriod === "semiannual" ? "accessPeriodSemiannual" : "accessPeriodMonthly"))}
         />
       )}
       {status === "canceling" && (
@@ -4968,9 +5041,9 @@ function AccessDetailsPoc({
               }
             : canRenewPix
             ? {
-                label: renewingPix ? t("pixCreating") : "Renovar via Pix",
-                onClick: () => onRenewPix(),
-                disabled: renewingPix,
+                label: renewingPix ? t("pixCreating") : t("accessPixRenew"),
+                onClick: () => void requestPixRenewal(),
+                disabled: busy || renewingPix,
               }
             : { label: "Ver planos", onClick: onBackToPlans }}
         />
@@ -4996,6 +5069,7 @@ function AccessDetailsPoc({
 function ExpiredPixPlanSelector({
   billing,
   locale,
+  t,
   initialTier,
   initialPeriod,
   scheduled,
@@ -5006,6 +5080,7 @@ function ExpiredPixPlanSelector({
 }: {
   billing: BillingState;
   locale: Locale;
+  t: TFn;
   initialTier: PocTier;
   initialPeriod: PocPeriod;
   scheduled?: boolean;
@@ -5016,10 +5091,24 @@ function ExpiredPixPlanSelector({
 }) {
   const [period, setPeriod] = useState<PocPeriod>(initialPeriod);
   const [tier, setTier] = useState<PocTier>(initialTier);
-  const price = getTierPrice(billing, "pix", tier, period);
-  const available = (candidateTier: PocTier, candidatePeriod: PocPeriod) => Boolean(
-    getTierPrice(billing, "pix", candidateTier, candidatePeriod),
-  );
+  const available = (candidateTier: PocTier, candidatePeriod: PocPeriod) => {
+    const periodEnabled = candidatePeriod === "monthly" ? billing.monthlyEnabled
+      : candidatePeriod === "semiannual" ? billing.semiannualEnabled : billing.annualEnabled;
+    const pixEnabled = candidatePeriod === "monthly" ? billing.paymentMethods.pixMonthly
+      : candidatePeriod === "semiannual" ? billing.paymentMethods.pixSemiannual : billing.paymentMethods.pixAnnual;
+    return billing.signupEnabled && billing.billingEnabled && billing.plansEnabled && billing.paymentMethods.pix
+      && periodEnabled && pixEnabled && Boolean(getTierPrice(billing, "pix", candidateTier, candidatePeriod));
+  };
+  const price = available(tier, period) ? getTierPrice(billing, "pix", tier, period) : null;
+  // A previously purchased period can be disabled after purchase. Never leave
+  // its unavailable option selected when another renewal is on sale.
+  useEffect(() => {
+    if (available(tier, period)) return;
+    for (const candidatePeriod of [period, "monthly", "semiannual", "annual"] as PocPeriod[]) {
+      const candidateTier = ([tier, "bronze", "prata", "ouro"] as PocTier[]).find((candidate) => available(candidate, candidatePeriod));
+      if (candidateTier) { setPeriod(candidatePeriod); setTier(candidateTier); return; }
+    }
+  }, [billing, tier, period]);
 
   return (
     <div className="px-1 pb-2 sm:px-2">
@@ -5030,18 +5119,18 @@ function ExpiredPixPlanSelector({
           disabled={busy}
           className="mb-7 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
-          ← Voltar ao meu acesso
+          ← {t("accessPixRenewalBack")}
         </button>
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">Renovação Pix</p>
-        <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">Escolha o plano para renovar</h2>
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">{t("accessPixRenewalTitle")}</p>
+        <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">{t("accessPixRenewalChoose")}</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           {scheduled
-            ? "Ao confirmar o Pix, seu acesso atual continua até o vencimento. O plano selecionado entra em vigor no próximo período."
-            : "Ao gerar o Pix, sua licença será reativada no plano selecionado assim que o pagamento for confirmado."}
+            ? t("accessPixRenewalScheduledBody")
+            : t("accessPixRenewalExpiredBody")}
         </p>
         {error && <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</p>}
         <div className="mt-8 inline-flex rounded-lg border border-border bg-card p-1">
-          {(["monthly", "annual"] as PocPeriod[]).map((candidate) => (
+          {(["monthly", "semiannual", "annual"] as PocPeriod[]).map((candidate) => (
             <button
               key={candidate}
               type="button"
@@ -5055,13 +5144,13 @@ function ExpiredPixPlanSelector({
               }}
               className={cx("rounded-md px-4 py-2 text-sm font-medium transition-colors", period === candidate ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground", "disabled:cursor-not-allowed disabled:opacity-40")}
             >
-              {candidate === "monthly" ? "Mensal" : "Anual"}
+              {t(candidate === "monthly" ? "accessPeriodMonthly" : candidate === "semiannual" ? "accessPeriodSemiannual" : "accessPeriodAnnual")}
             </button>
           ))}
         </div>
         <div className="mt-7 grid gap-3 md:grid-cols-3">
           {(["bronze", "prata", "ouro"] as PocTier[]).map((candidate) => {
-            const candidatePrice = getTierPrice(billing, "pix", candidate, period);
+            const candidatePrice = available(candidate, period) ? getTierPrice(billing, "pix", candidate, period) : null;
             const selected = tier === candidate;
             return (
               <button
@@ -5071,16 +5160,16 @@ function ExpiredPixPlanSelector({
                 onClick={() => setTier(candidate)}
                 className={cx("min-h-[180px] rounded-xl border p-5 text-left transition-all", selected ? "border-primary bg-secondary/70 shadow-[var(--glow-soft)]" : "border-border bg-card hover:border-primary/45", "disabled:cursor-not-allowed disabled:opacity-40")}
               >
-                <p className="text-lg font-semibold">{candidate === "bronze" ? "Bronze" : candidate === "prata" ? "Prata" : "Ouro"}</p>
-                <p className="mt-3 text-2xl font-semibold tabular-nums">{candidatePrice ? formatMoney(locale, candidatePrice) : "Indisponível"}</p>
-                <p className="mt-3 text-xs text-muted-foreground">Pagamento único via Pix para o próximo período.</p>
+                <p className="text-lg font-semibold">{tierDisplayName(candidate)}</p>
+                <p className="mt-3 text-2xl font-semibold tabular-nums">{candidatePrice ? formatMoney(locale, candidatePrice) : t("accessPixRenewalUnavailable")}</p>
+                <p className="mt-3 text-xs text-muted-foreground">{t("accessPixRenewalSinglePayment")}</p>
               </button>
             );
           })}
         </div>
         <div className="mt-8 flex justify-end">
           <Button size="lg" disabled={busy || !price} onClick={() => void onGenerate({ tier, period })}>
-            {busy ? "Gerando Pix..." : "Gerar Pix"}
+            {busy ? t("pixCreating") : t("accessPixRenewalGenerate")}
           </Button>
         </div>
       </section>

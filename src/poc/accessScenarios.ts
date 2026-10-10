@@ -1,5 +1,5 @@
 export type PocTier = "bronze" | "prata" | "ouro";
-export type PocPeriod = "monthly" | "annual";
+export type PocPeriod = "monthly" | "semiannual" | "annual";
 export type PocPayment = "card" | "pix" | "none";
 export type PocStatus =
   | "active"
@@ -29,9 +29,9 @@ export type PocScenario = {
 };
 
 export const POC_PRICES = {
-  bronze: { monthly: 1490, annual: 11990 },
-  prata: { monthly: 1990, annual: 15990 },
-  ouro: { monthly: 2490, annual: 19990 },
+  bronze: { monthly: 1490, semiannual: 0, annual: 11990 },
+  prata: { monthly: 1990, semiannual: 0, annual: 15990 },
+  ouro: { monthly: 2490, semiannual: 0, annual: 19990 },
 } as const;
 
 export const POC_SCENARIOS: PocScenario[] = [

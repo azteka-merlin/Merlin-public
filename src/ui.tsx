@@ -9,6 +9,7 @@ export type BillingPrice = {
   amountCents: number;
   currency: string;
   recurringInterval?: string | null;
+  recurringIntervalCount?: number | null;
   active?: boolean;
   stale?: boolean;
 };
