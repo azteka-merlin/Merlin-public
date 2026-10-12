@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Check, ChevronDown, Clock, Menu, X, Zap } from "lucide-react";
+import { Check, ChevronDown, Clock, Crown, Menu, X, Zap } from "lucide-react";
 import { FaTiktok, FaTwitch, FaYoutube } from "react-icons/fa6";
 import { dictionaries, initialLocale, type Locale } from "./i18n";
 import { CatalogPage } from "./CatalogPage";
@@ -109,6 +109,16 @@ type PixOrder = {
   renewalEffectiveAt?: string | null;
   renewalAppliedAt?: string | null;
 };
+
+function mergePixOrderDetails(order: PixOrder, payload: Partial<PixOrder>): PixOrder {
+  return {
+    ...order,
+    qrCode: payload.qrCode || order.qrCode,
+    qrCodeBase64: payload.qrCodeBase64 || order.qrCodeBase64,
+    ticketUrl: payload.ticketUrl || order.ticketUrl,
+    expiresAt: payload.expiresAt || order.expiresAt,
+  };
+}
 type AccessDetailsPayload = {
   status: "found" | "not_found";
   access?: {
@@ -166,6 +176,22 @@ type PublicPlanChangePreview = {
   changeType: "upgrade" | "downgrade" | "interval_change";
   timing: "immediate" | "period_end";
   requiresPaymentConfirmation: boolean;
+  unusedCreditCents?: number;
+  nextRenewalAt?: string;
+};
+
+type PixTransitionPreview = {
+  currentTier: PlanTier;
+  currentPeriod: BillingPeriod;
+  targetTier: PlanTier;
+  targetPeriod: BillingPeriod;
+  paymentMethod: PaymentMethod;
+  timing: "immediate" | "period_end" | "payment_method_only" | "early_renewal" | "reactivation";
+  amountDueNowCents: number;
+  unusedPixCreditCents: number;
+  targetAmountCents: number;
+  nextRenewalAt: string;
+  currency: string;
 };
 
 type PublicPlanChangeResponse<
@@ -2338,6 +2364,7 @@ function Plans({
       ).then((r) => r.json());
       if (payload?.success === false)
         throw new Error(payload.error || t("genericError"));
+      setPixOrder((value) => value ? mergePixOrderDetails(value, payload) : value);
       if (payload.status === "paid" && payload.license?.licenseKey) {
         showSuccess({
           title: t("paymentApprovedTitle"),
@@ -3319,6 +3346,7 @@ function PixPaymentPanel({
   t,
   onRetry,
   onNewPix,
+  transition = false,
 }: {
   order: PixOrder;
   plan: PlanType;
@@ -3328,6 +3356,7 @@ function PixPaymentPanel({
   t: TFn;
   onRetry: () => void;
   onNewPix: () => void;
+  transition?: boolean;
 }) {
   const isExpired = order.status === "expired";
   const isFailed = order.status === "failed";
@@ -3342,7 +3371,7 @@ function PixPaymentPanel({
           {t("paymentPix")}
         </p>
         <h3 className="mt-2 text-2xl font-bold">
-          {isExpired
+          {transition && !isExpired && !isFailed ? t("accessPixTransitionPixInstructions") : isExpired
             ? t("pixExpiredTitle")
             : isFailed
               ? t("pixErrorTitle")
@@ -3408,7 +3437,7 @@ function PixPaymentPanel({
           {t("pixWaiting")}
         </div>
       )}
-      {!isExpired && !isFailed && (plan === "monthly" || plan === "semiannual" || plan === "annual") && (
+      {!transition && !isExpired && !isFailed && (plan === "monthly" || plan === "semiannual" || plan === "annual") && (
         <p className="mx-auto mt-4 max-w-[430px] text-center text-xs leading-relaxed text-muted-foreground/80">
           {plan === "annual" ? t("pixAnnualFootnote") : plan === "semiannual" ? t("pixSemiannualFootnote") : t("pixMonthlyFootnote")}
         </p>
@@ -3797,8 +3826,8 @@ function AccessModal({
         t("genericError"),
       );
       if (accessWindow) {
-        accessWindow.opener = null;
         accessWindow.location.href = "/meu-acesso";
+        accessWindow.opener = null;
       } else window.location.assign("/meu-acesso");
       onClose();
     } catch (error) {
@@ -3989,6 +4018,7 @@ function AccessModal({
       const payload = await fetch(
         `/api/public/pix/orders/${encodeURIComponent(order.paymentIntentId)}/status`,
       ).then((r) => r.json());
+      setRenewalPixOrder((value) => value ? mergePixOrderDetails(value, payload) : value);
       if (payload.status === "paid" && payload.license) {
         setAccess((value) =>
           value
@@ -4083,6 +4113,7 @@ function AccessModal({
             locale={locale}
             t={t}
             onClose={onClose}
+            loggingOut={false}
             onBackToPlans={onBackToPlans}
             onPortal={openSubscriptionPortal}
             onRenewPix={async (target) => { await startRenewal("pix", target || { tier: currentTier, period: isAnnual ? "annual" : isSemiannual ? "semiannual" : "monthly" }); }}
@@ -4500,6 +4531,7 @@ function AccessDetailsPoc({
   locale,
   t,
   onClose,
+  loggingOut,
   onBackToPlans,
   onPortal,
   onRenewPix,
@@ -4509,12 +4541,15 @@ function AccessDetailsPoc({
   onPreview,
   onCreate,
   onCancelChange,
+  onPixTransitionPreview,
+  onPixTransitionCreate,
 }: {
   access: NonNullable<AccessDetailsPayload["access"]>;
   billing: BillingState;
   locale: Locale;
   t: TFn;
   onClose: () => void;
+  loggingOut: boolean;
   onBackToPlans: () => void;
   onPortal: () => void;
   onRenewPix: (target?: { tier: PocTier; period: PocPeriod }) => Promise<void>;
@@ -4530,6 +4565,8 @@ function AccessDetailsPoc({
     period: BillingPeriod;
   }) => Promise<"pending_payment" | "scheduled" | "applied">;
   onCancelChange: () => Promise<void>;
+  onPixTransitionPreview?: (target: { tier: PlanTier; period: BillingPeriod; paymentMethod: PaymentMethod }) => Promise<PixTransitionPreview>;
+  onPixTransitionCreate?: (target: { tier: PlanTier; period: BillingPeriod; paymentMethod: PaymentMethod }) => Promise<void>;
 }) {
   const [view, setView] = useState<AccessPlanChangeView>("overview");
   const [target, setTarget] = useState<{
@@ -4539,13 +4576,15 @@ function AccessDetailsPoc({
   const [preview, setPreview] = useState<PublicPlanChangePreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [pixPlanSelectionOpen, setPixPlanSelectionOpen] = useState(false);
+  const [pixTransitionOpen, setPixTransitionOpen] = useState(false);
   const [error, setError] = useState("");
   const externalRedirectStarted = useRef(false);
 
   const period: PocPeriod = access.kind === "annual" ? "annual" : access.kind === "semiannual" ? "semiannual" : "monthly";
   const tier: PocTier = access.planTier || "ouro";
   const planChange = access.planChange;
-  const isCardSubscription = Boolean(access.subscription?.canManage);
+  // canManage becomes false after expiry; payment origin must remain card.
+  const isCardSubscription = access.subscription?.paymentMethod === "card";
   const subscriptionCanceled = isCardSubscription && (
     access.billingStatus === "canceled" ||
     access.subscription?.status === "canceled"
@@ -4587,10 +4626,18 @@ function AccessDetailsPoc({
   const isManualPixAccess = isRecurring && !isCardSubscription;
   const canRenewPix = (status === "expired" && Boolean(access.renewal?.pix) && !access.renewal?.card)
     || (status === "active" && Boolean(access.renewal?.earlyPix));
-  const canChangeExpiredPix = canRenewPix && isManualPixAccess && !access.pixRenewal;
+  const canChangeExpiredPix = status === "expired" && isManualPixAccess && !access.pixRenewal;
+  const canChangeExpiredPixTransition = Boolean(canChangeExpiredPix && onPixTransitionPreview && onPixTransitionCreate
+    && billing.plansEnabled && billing.billingEnabled && billing.signupEnabled);
+  const canChangeActivePix = Boolean(onPixTransitionPreview && onPixTransitionCreate
+    && billing.plansEnabled && billing.billingEnabled && isManualPixAccess
+    && status === "active" && !access.pixRenewal);
   const canRenewCard = status === "expired"
     && access.subscription?.paymentMethod === "card"
     && access.billingStatus === "canceled";
+  const canSwitchCardToPix = status === "expired"
+    && access.subscription?.paymentMethod === "card"
+    && Boolean(access.renewal?.pix);
   const canRegularizeStripe = status === "expired"
     && !canRenewPix
     && ["past_due", "unpaid"].includes(access.billingStatus || "");
@@ -4736,7 +4783,7 @@ function AccessDetailsPoc({
     }
   }
 
-  if (pixPlanSelectionOpen && canChangeExpiredPix) {
+  if (pixPlanSelectionOpen && (canChangeExpiredPix || canSwitchCardToPix)) {
     return (
       <ExpiredPixPlanSelector
         billing={billing}
@@ -4759,6 +4806,22 @@ function AccessDetailsPoc({
     );
   }
 
+  if (pixTransitionOpen && (canChangeActivePix || canChangeExpiredPixTransition)) {
+    return <PixPlanTransitionSelector
+      billing={billing}
+      locale={locale}
+      t={t}
+      currentTier={tier}
+      currentPeriod={period}
+      currentPriceCents={currentPrice}
+      currentExpiresAt={access.expiresAt}
+      expired={status === "expired"}
+      onBack={() => setPixTransitionOpen(false)}
+      onPreview={onPixTransitionPreview!}
+      onCreate={onPixTransitionCreate!}
+    />;
+  }
+
   if (view === "replace") {
     return (
       <div className="px-1 pb-2 sm:px-2">
@@ -4779,9 +4842,10 @@ function AccessDetailsPoc({
             <button
               type="button"
               onClick={onClose}
+              disabled={loggingOut}
               className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary hover:text-foreground"
             >
-              Sair
+              {loggingOut ? t("accessSigningOut") : t("accessSignOut")}
             </button>
           </div>
         </header>
@@ -4840,9 +4904,10 @@ function AccessDetailsPoc({
             <button
               type="button"
               onClick={onClose}
+              disabled={loggingOut}
               className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary hover:text-foreground"
             >
-              Sair
+              {loggingOut ? t("accessSigningOut") : t("accessSignOut")}
             </button>
           </div>
         </header>
@@ -4897,9 +4962,10 @@ function AccessDetailsPoc({
             <button
               type="button"
               onClick={onClose}
+              disabled={loggingOut}
               className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary hover:text-foreground"
             >
-              Sair
+              {loggingOut ? t("accessSigningOut") : t("accessSignOut")}
             </button>
           </div>
         </header>
@@ -4917,6 +4983,8 @@ function AccessDetailsPoc({
           isDowngrade={preview.timing === "period_end"}
           scheduled={preview.timing === "period_end"}
           targetPriceCents={preview.targetAmountCents}
+          prepaidCreditCents={preview.unusedCreditCents}
+          renewalDateOverride={preview.nextRenewalAt ? formatDate(locale, preview.nextRenewalAt) : null}
           busy={busy}
           onBack={() => {
             setError("");
@@ -4947,9 +5015,10 @@ function AccessDetailsPoc({
           <button
             type="button"
             onClick={onClose}
+            disabled={loggingOut}
             className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary hover:text-foreground"
           >
-            Sair
+            {loggingOut ? t("accessSigningOut") : t("accessSignOut")}
           </button>
         </div>
       </header>
@@ -5026,18 +5095,48 @@ function AccessDetailsPoc({
           title="Seu acesso expirou"
           body={canRegularizeStripe
             ? "Seu pagamento está pendente. Regularize a cobrança para reativar seu plano."
+            : canSwitchCardToPix
+            ? t("accessExpiredChooseRenewal")
             : canRenewCard
             ? "Renove seu plano para reativar esta mesma licença e continuar usando o Merlin."
             : canRenewPix
-            ? `Renove seu Plano ${tier === "prata" ? "Prata" : tier === "ouro" ? "Ouro" : "Bronze"} via Pix para continuar usando o Merlin.`
+            ? "Escolha seu plano e pague por Pix ou cartão para reativar esta licença."
             : "Escolha um novo plano para continuar usando o Merlin."}
-          action={canRegularizeStripe
+          actions={canRenewCard && canSwitchCardToPix ? [
+            {
+              label: renewingCard ? t("checkoutLoading") : t("accessRenewWithCard"),
+              onClick: onRenewCard,
+              disabled: renewingCard,
+              variant: "outline",
+            },
+            {
+              label: t("accessRenewWithPix"),
+              onClick: () => setPixPlanSelectionOpen(true),
+              disabled: busy || renewingPix,
+              variant: "primary",
+            },
+          ] : undefined}
+          action={canRenewCard && canSwitchCardToPix
+            ? undefined
+            : canRegularizeStripe
             ? { label: "Regularizar pagamento", onClick: onPortal }
             : canRenewCard
             ? {
                 label: renewingCard ? t("checkoutLoading") : "Renovar plano",
                 onClick: onRenewCard,
                 disabled: renewingCard,
+              }
+            : canSwitchCardToPix
+            ? {
+                label: t("accessRenewWithPix"),
+                onClick: () => setPixPlanSelectionOpen(true),
+                disabled: busy || renewingPix,
+              }
+            : canChangeExpiredPixTransition
+            ? {
+                label: "Escolher plano e pagamento",
+                onClick: () => setPixTransitionOpen(true),
+                disabled: busy || renewingPix,
               }
             : canRenewPix
             ? {
@@ -5054,16 +5153,160 @@ function AccessDetailsPoc({
         tier={tier}
         period={period}
         cardEnding={scenario.payment === "card" ? "Cartão cadastrado" : "Pix"}
-        canChange={canChange || canChangeExpiredPix}
+        canChange={canChange || canChangeExpiredPixTransition || (canChangeExpiredPix && canRenewPix) || canChangeActivePix}
         flagOff={!billing.plansEnabled}
         priceCents={currentPrice}
-        onChange={canChangeExpiredPix ? () => setPixPlanSelectionOpen(true) : beginChange}
+        onChange={canChangeActivePix || canChangeExpiredPixTransition ? () => setPixTransitionOpen(true)
+          : canChangeExpiredPix && canRenewPix ? () => setPixPlanSelectionOpen(true) : beginChange}
         onPortal={onPortal}
         onCancelScheduled={cancelScheduledChange}
         onReplaceScheduled={() => setView("replace")}
       />
     </div>
   );
+}
+
+function PixPlanTransitionSelector({ billing, locale, t, currentTier, currentPeriod, currentPriceCents, currentExpiresAt, expired, onBack, onPreview, onCreate }: {
+  billing: BillingState;
+  locale: Locale;
+  t: TFn;
+  currentTier: PlanTier;
+  currentPeriod: BillingPeriod;
+  currentPriceCents: number | null;
+  currentExpiresAt?: string | null;
+  expired: boolean;
+  onBack: () => void;
+  onPreview: (target: { tier: PlanTier; period: BillingPeriod; paymentMethod: PaymentMethod }) => Promise<PixTransitionPreview>;
+  onCreate: (target: { tier: PlanTier; period: BillingPeriod; paymentMethod: PaymentMethod }) => Promise<void>;
+}) {
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
+  const [period, setPeriod] = useState<BillingPeriod>(currentPeriod);
+  const [tier, setTier] = useState<PlanTier>(currentTier);
+  const [quote, setQuote] = useState<PixTransitionPreview | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const available = (candidateTier: PlanTier, candidatePeriod: BillingPeriod, method = paymentMethod) => {
+    const periodEnabled = candidatePeriod === "monthly" ? billing.monthlyEnabled
+      : candidatePeriod === "semiannual" ? billing.semiannualEnabled : billing.annualEnabled;
+    const pixEnabled = candidatePeriod === "monthly" ? billing.paymentMethods.pixMonthly
+      : candidatePeriod === "semiannual" ? billing.paymentMethods.pixSemiannual : billing.paymentMethods.pixAnnual;
+    return billing.signupEnabled && billing.billingEnabled && periodEnabled
+      && (method === "card" ? billing.paymentMethods.card : billing.paymentMethods.pix && pixEnabled)
+      && Boolean(getTierPrice(billing, method, candidateTier, candidatePeriod));
+  };
+  const choose = (next: { tier?: PlanTier; period?: BillingPeriod; paymentMethod?: PaymentMethod }) => {
+    if (next.tier) setTier(next.tier);
+    if (next.period) setPeriod(next.period);
+    if (next.paymentMethod) setPaymentMethod(next.paymentMethod);
+    setQuote(null);
+    setError("");
+  };
+  const target = { tier, period, paymentMethod };
+  const samePixPlan = !expired && paymentMethod === "pix" && tier === currentTier && period === currentPeriod;
+  const periodLabel = (value: BillingPeriod) => t(value === "monthly" ? "accessPeriodMonthly"
+    : value === "semiannual" ? "accessPeriodSemiannual" : "accessPeriodAnnual");
+  const currentDate = formatDate(locale, currentExpiresAt);
+  return <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-card/35 px-4 py-6 sm:px-7 sm:py-7">
+    <button type="button" className="mb-6 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50" onClick={onBack} disabled={busy}>
+      ← {t("accessPixTransitionBack")}
+    </button>
+    <div>
+      <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">{t("accessPixTransitionTitle")}</p>
+      <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{t("accessPixTransitionChoose")}</h2>
+      <p className="mt-2 text-sm text-muted-foreground">{t(expired
+        ? "accessPixTransitionReactivation" : "accessPixTransitionBody")}</p>
+
+      <section className="mt-6 rounded-xl border border-primary/25 bg-primary/5 p-4 sm:p-5" aria-label={t("accessPixTransitionCurrentAccess")}>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("accessPixTransitionCurrentAccess")}</p>
+          <span className={cx("rounded-full px-2.5 py-1 text-xs font-medium", expired ? "bg-destructive/10 text-destructive" : "bg-emerald-400/10 text-emerald-300")}>
+            {t(expired ? "accessPixTransitionExpired" : "accessPixTransitionActive")}
+          </span>
+        </div>
+        <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="font-semibold">{tierDisplayName(currentTier)} · {periodLabel(currentPeriod)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("paymentPix")}{currentDate !== "--" ? ` · ${t(expired ? "accessPixTransitionExpiredOn" : "accessPixTransitionRenewsOn").replace("{date}", currentDate)}` : ""}
+            </p>
+          </div>
+          {currentPriceCents !== null && <p className="font-semibold">{formatMoney(locale, { amountCents: currentPriceCents, currency: "brl" })}</p>}
+        </div>
+      </section>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <fieldset>
+          <legend className="mb-2 text-sm font-medium">{t("accessPixTransitionPayment")}</legend>
+          <div className="grid grid-cols-2 rounded-xl border border-border bg-background/50 p-1">
+            {(["pix", "card"] as PaymentMethod[]).map((method) => <button key={method} type="button"
+              aria-pressed={paymentMethod === method}
+              disabled={busy || (method === "card" ? !billing.paymentMethods.card : !billing.paymentMethods.pix)}
+              onClick={() => choose({ paymentMethod: method })}
+              className={cx("rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary", paymentMethod === method ? "bg-secondary text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground", "disabled:cursor-not-allowed disabled:opacity-40")}
+            >{method === "pix" ? t("paymentPix") : t("paymentCard")}</button>)}
+          </div>
+        </fieldset>
+        <label className="block text-sm font-medium">
+          <span className="mb-2 block">{t("accessPixTransitionPeriod")}</span>
+          <span className="relative block">
+            <select value={period} disabled={busy} onChange={(event) => choose({ period: event.target.value as BillingPeriod })}
+              className="w-full appearance-none rounded-xl border border-border bg-background/50 px-4 py-2.5 pr-10 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50">
+              {(["monthly", "semiannual", "annual"] as BillingPeriod[]).map((candidate) => <option key={candidate} value={candidate}
+                disabled={!(["bronze", "prata", "ouro"] as PlanTier[]).some((candidateTier) => available(candidateTier, candidate))}>
+                {periodLabel(candidate)}
+              </option>)}
+            </select>
+            <ChevronDown aria-hidden className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          </span>
+        </label>
+      </div>
+
+      <p className="mt-6 text-sm font-semibold">{t("accessPixTransitionChoosePlan")}</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        {(["bronze", "prata", "ouro"] as PlanTier[]).map((candidate) => {
+          const price = available(candidate, period) ? getTierPrice(billing, paymentMethod, candidate, period) : null;
+          const selected = tier === candidate;
+          return <button key={candidate} type="button" disabled={busy || !price} aria-pressed={selected}
+            onClick={() => choose({ tier: candidate })}
+            className={cx("flex min-h-36 flex-col rounded-xl border p-4 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary", selected ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/50", "disabled:cursor-not-allowed disabled:opacity-40")}>
+            <span className="flex w-full items-center justify-between text-primary/75"><Crown aria-hidden className="h-4 w-4" />{selected && <Check aria-hidden className="h-4 w-4" />}</span>
+            <span className="mt-3 font-semibold">{tierDisplayName(candidate)}</span>
+            <span className="mt-1 text-lg font-semibold">{price ? formatMoney(locale, price) : t("accessPixRenewalUnavailable")}</span>
+            <span className="mt-1 text-xs text-muted-foreground">{periodLabel(period)}</span>
+            {selected && <span className="mt-2 text-xs font-medium uppercase tracking-wide text-primary">{t("accessPixTransitionSelected")}</span>}
+          </button>;
+        })}
+      </div>
+      {samePixPlan && <p className="mt-4 text-sm text-muted-foreground">{t("accessPixTransitionSamePlan")}</p>}
+      {error && <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</p>}
+      {quote && <div className="mt-7 rounded-xl border border-primary/35 bg-primary/10 p-5 text-sm">
+        <p className="font-semibold">{t("accessPixTransitionSummary")}</p>
+        {quote.unusedPixCreditCents > 0 && quote.timing === "immediate" &&
+          <p className="mt-3">{t("accessPixTransitionCredit")}: {formatMoney(locale, { amountCents: quote.unusedPixCreditCents, currency: "brl" })}</p>}
+        <p className="mt-2">{t("accessPixTransitionDueNow")}: {formatMoney(locale, { amountCents: quote.amountDueNowCents, currency: "brl" })}</p>
+        <p className="mt-2">{t("accessPixTransitionNextRenewal")}: {formatDate(locale, quote.nextRenewalAt)}</p>
+        <p className="mt-3 text-muted-foreground">{t(quote.timing === "period_end" ? "accessPixTransitionDeferred"
+          : quote.timing === "early_renewal" ? "accessPixTransitionEarlyRenewal"
+            : quote.timing === "reactivation" ? "accessPixTransitionReactivation"
+              : quote.paymentMethod === "card"
+                ? quote.timing === "immediate" ? "accessPixTransitionCardPaid" : "accessPixTransitionCard"
+                : "accessPixTransitionImmediate")}</p>
+      </div>}
+      <div className="mt-6">
+        <Button size="lg" className="w-full" disabled={busy || !available(tier, period) || samePixPlan}
+          onClick={async () => {
+            setBusy(true); setError("");
+            try {
+              if (!quote) setQuote(await onPreview(target));
+              else await onCreate(target);
+            } catch (cause) { setError(cause instanceof Error ? cause.message : t("genericError")); }
+            finally { setBusy(false); }
+          }}
+        >{busy ? t("loading") : quote ? paymentMethod === "pix" ? t("accessPixRenewalGenerate") : t("accessPixTransitionContinueCard")
+          : t("accessPixTransitionReview")}</Button>
+      </div>
+    </div>
+  </div>;
 }
 
 function ExpiredPixPlanSelector({
@@ -5233,19 +5476,72 @@ function MyAccessPage({
   const [access, setAccess] = useState<AccessDetailsPayload | null>(null);
   const [csrfToken, setCsrfToken] = useState("");
   const [loading, setLoading] = useState(true);
+  const [pendingSessionReady, setPendingSessionReady] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [checkoutReturnStatus, setCheckoutReturnStatus] = useState<"processing" | "completed" | "expired" | "delayed" | null>(null);
   const [renewalPixOrder, setRenewalPixOrder] = useState<PixOrder | null>(null);
+  const [pixOrderPurpose, setPixOrderPurpose] = useState<"renewal" | "transition">("renewal");
+  const lastPixTransition = useRef<{ tier: PlanTier; period: BillingPeriod; paymentMethod: PaymentMethod } | null>(null);
   const [renewalPixCopied, setRenewalPixCopied] = useState(false);
   const [renewalPixChecking, setRenewalPixChecking] = useState(false);
   const [renewingPix, setRenewingPix] = useState(false);
   const [renewingCard, setRenewingCard] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  const logoutStarted = useRef(false);
   const pixRenewalStarted = useRef(false);
   const cardRenewalStarted = useRef(false);
   const isPendingWindow = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("pending") === "1" || params.get("opening-portal") === "1";
   }, []);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("pending") !== "1") return undefined;
+    let active = true;
+    let done = false;
+    let checking = false;
+    let timer: number;
+    let deadline: number;
+    const finish = (reason?: string) => {
+      if (!active || done) return;
+      done = true;
+      window.clearInterval(timer);
+      window.clearTimeout(deadline);
+      if (reason) setError(reason);
+      else window.history.replaceState({}, "", "/meu-acesso");
+      setPendingSessionReady(true);
+      setLoading(false);
+    };
+    const checkSession = async () => {
+      if (!active || done || checking) return;
+      checking = true;
+      try {
+        const response = await fetch("/api/public/access/session", { cache: "no-store" });
+        if (response.status === 401) return;
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.success === false)
+          throw new Error(payload.error || t("accessSessionError"));
+        if (!active || done) return;
+        setAccess(payload as AccessDetailsPayload);
+        setCsrfToken(String(payload.csrfToken || ""));
+        finish();
+      } catch (reason) {
+        finish(reason instanceof Error ? reason.message : t("accessSessionError"));
+      } finally {
+        checking = false;
+      }
+    };
+    timer = window.setInterval(() => { void checkSession(); }, 1000);
+    deadline = window.setTimeout(() => finish(t("accessSessionExpired")), 30000);
+    void checkSession();
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.clearTimeout(deadline);
+    };
+  }, [t]);
 
   const refreshAccess = useCallback(async (redirectToLogin = false) => {
     const response = await fetch("/api/public/access/session", {
@@ -5327,6 +5623,35 @@ function MyAccessPage({
     };
   }, [isPendingWindow, refreshAccess, t]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+    if (params.get("access") !== "plan-change-return" || !sessionId) return undefined;
+    let cancelled = false;
+    let attempts = 0;
+    const check = async () => {
+      try {
+        const response = await fetch(`/api/public/checkout-status?session_id=${encodeURIComponent(sessionId)}`, { cache: "no-store" });
+        const payload = await response.json().catch(() => ({}));
+        if (cancelled || !response.ok) return;
+        if (payload.status === "completed") {
+          setCheckoutReturnStatus("completed");
+          await refreshAccess();
+        } else if (payload.status === "expired") setCheckoutReturnStatus("expired");
+        else setCheckoutReturnStatus("processing");
+      } catch { /* A later poll can still observe the webhook. */ }
+    };
+    void check();
+    const timer = window.setInterval(() => {
+      if (attempts++ < 20 && !cancelled) void check();
+      else {
+        window.clearInterval(timer);
+        if (!cancelled) setCheckoutReturnStatus((status) => status === "completed" || status === "expired" ? status : "delayed");
+      }
+    }, 3000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [refreshAccess]);
+
   async function postSession<T>(path: string, body: unknown): Promise<T> {
     const response = await fetch(path, {
       method: "POST",
@@ -5344,6 +5669,34 @@ function MyAccessPage({
     return payload as T;
   }
 
+  async function signOut() {
+    if (logoutStarted.current) return;
+    logoutStarted.current = true;
+    setLoggingOut(true);
+    setLogoutError("");
+    try {
+      const response = await fetch("/api/public/access/session/logout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-merlin-access-csrf": csrfToken,
+        },
+        credentials: "same-origin",
+        body: "{}",
+      });
+      // An expired session is already unusable; the API also clears its cookie.
+      if (!response.ok && response.status !== 401) throw new Error(t("accessLogoutError"));
+      setAccess(null);
+      setCsrfToken("");
+      if (window.opener) window.close();
+      if (!window.closed) window.location.replace("/download");
+    } catch {
+      logoutStarted.current = false;
+      setLoggingOut(false);
+      setLogoutError(t("accessLogoutError"));
+    }
+  }
+
   async function startPixRenewal(target?: { tier: PocTier; period: PocPeriod }) {
     if (pixRenewalStarted.current) return;
     pixRenewalStarted.current = true;
@@ -5354,6 +5707,7 @@ function MyAccessPage({
         ...(target ? { planTier: target.tier, planType: target.period } : {}),
       });
       setRenewalPixOrder(payload);
+      setPixOrderPurpose("renewal");
       setRenewalPixCopied(false);
     } catch (reason) {
       pixRenewalStarted.current = false;
@@ -5369,6 +5723,35 @@ function MyAccessPage({
     void startPixRenewal().catch((reason) =>
       setError(reason instanceof Error ? reason.message : t("genericError")),
     );
+  }
+
+  async function startPixTransition(target: { tier: PlanTier; period: BillingPeriod; paymentMethod: PaymentMethod }) {
+    const payload = await postSession<{ kind: "pix" | "card"; checkoutUrl?: string } & Partial<PixOrder>>(
+      "/api/public/access/session/pix-plan-transition", {
+        targetTier: target.tier, targetPeriod: target.period, paymentMethod: target.paymentMethod,
+        mercadoPagoDeviceId: getMercadoPagoDeviceId() || undefined,
+      },
+    );
+    if (payload.kind === "card") {
+      if (!payload.checkoutUrl) throw new Error(t("genericError"));
+      window.location.assign(payload.checkoutUrl);
+      return;
+    }
+    if (!payload.paymentIntentId || !payload.planType || !payload.qrCode || !payload.status) {
+      throw new Error(t("genericError"));
+    }
+    lastPixTransition.current = target;
+    setPixOrderPurpose("transition");
+    setRenewalPixOrder(payload as PixOrder);
+    setRenewalPixCopied(false);
+  }
+
+  function startNewPixTransition() {
+    const target = lastPixTransition.current;
+    if (!target) return;
+    setRenewalPixOrder(null);
+    void startPixTransition(target).catch((reason) =>
+      setError(reason instanceof Error ? reason.message : t("genericError")));
   }
 
   async function startCardRenewal() {
@@ -5395,6 +5778,7 @@ function MyAccessPage({
       const response = await fetch(`/api/public/pix/orders/${encodeURIComponent(order.paymentIntentId)}/status`);
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || payload.success === false) throw new Error(payload.error || t("genericError"));
+      setRenewalPixOrder((value) => value ? mergePixOrderDetails(value, payload) : value);
       if (payload.status === "paid") {
         setRenewalPixOrder(null);
         pixRenewalStarted.current = false;
@@ -5434,7 +5818,7 @@ function MyAccessPage({
     }
   }
 
-  if (loading || isPendingWindow)
+  if (loading || (isPendingWindow && !pendingSessionReady))
     return (
       <div className="grid min-h-screen place-items-center bg-background px-5 text-sm text-muted-foreground">
         {t("accessSessionLoading")}
@@ -5463,7 +5847,10 @@ function MyAccessPage({
   const returnNotice =
     new URLSearchParams(window.location.search).get("access") ===
     "plan-change-return"
-      ? access.access.planChange?.status === "pending_payment"
+      ? (new URLSearchParams(window.location.search).has("session_id") && checkoutReturnStatus !== "completed")
+        ? checkoutReturnStatus === "expired" ? t("accessPlanChangeNotCompleted")
+          : checkoutReturnStatus === "delayed" ? t("accessPlanChangeDelayed") : t("accessPlanChangeUpdating")
+      : access.access.planChange?.status === "pending_payment"
         ? t("accessPlanChangeUpdating")
         : access.access.planChange?.status === "not_completed"
           ? t("accessPlanChangeNotCompleted")
@@ -5473,8 +5860,14 @@ function MyAccessPage({
   return (
     <div className="min-h-screen bg-background text-foreground">
       <main className="mx-auto max-w-[1040px] px-5 py-10 sm:px-8 sm:py-16">
+        {logoutError && (
+          <StateBanner tone="error" title={t("accessLogoutError")} body={logoutError} />
+        )}
         {returnNotice && (
-          <StateBanner tone="pending" title={t("accessPortalTitle")} body={returnNotice} />
+          <StateBanner tone="pending" title={t("accessPortalTitle")} body={returnNotice}
+            action={checkoutReturnStatus === "delayed" ? {
+              label: t("paymentStatusRetry"), onClick: () => window.location.reload(),
+            } : undefined} />
         )}
         {renewalPixOrder && (
           <div className="fixed inset-0 z-[90] overflow-y-auto bg-background/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Pagamento Pix">
@@ -5487,7 +5880,8 @@ function MyAccessPage({
                 setCopied={setRenewalPixCopied}
                 t={t}
                 onRetry={() => checkRenewalPixStatus(renewalPixOrder, true)}
-                onNewPix={startNewPixRenewal}
+                onNewPix={pixOrderPurpose === "transition" ? startNewPixTransition : startNewPixRenewal}
+                transition={pixOrderPurpose === "transition"}
               />
             </div>
           </div>
@@ -5498,9 +5892,9 @@ function MyAccessPage({
           locale={locale}
           t={t}
           onClose={() => {
-            if (window.opener) window.close();
-            else window.location.href = "/download";
+            void signOut();
           }}
+          loggingOut={loggingOut}
           onBackToPlans={() => {
             window.location.href = "/download#planos";
           }}
@@ -5560,6 +5954,14 @@ function MyAccessPage({
             );
             window.location.reload();
           }}
+          onPixTransitionPreview={async (target) => {
+            const payload = await postSession<{ transition: PixTransitionPreview }>(
+              "/api/public/access/session/pix-plan-transition/preview", {
+                targetTier: target.tier, targetPeriod: target.period, paymentMethod: target.paymentMethod,
+              });
+            return payload.transition;
+          }}
+          onPixTransitionCreate={startPixTransition}
         />
       </main>
     </div>

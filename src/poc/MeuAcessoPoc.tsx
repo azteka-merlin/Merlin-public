@@ -586,13 +586,26 @@ export function StateBanner({
   title,
   body,
   action,
+  actions,
 }: {
   tone: "error" | "pending";
   title: string;
   body: string;
-  action?: { label: string; onClick: () => void; disabled?: boolean };
+  action?: {
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+    variant?: "primary" | "outline";
+  };
+  actions?: Array<{
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+    variant?: "primary" | "outline";
+  }>;
 }) {
   const Icon = tone === "error" ? CircleAlert : Clock3;
+  const bannerActions = actions || (action ? [action] : []);
   return (
     <div
       className={cx(
@@ -616,15 +629,20 @@ export function StateBanner({
           </p>
         </div>
       </div>
-      {action && (
-        <Button
-          variant="outline"
-          className="mt-4 shrink-0 whitespace-nowrap sm:mt-0"
-          onClick={action.onClick}
-          disabled={action.disabled}
-        >
-          {action.label}
-        </Button>
+      {bannerActions.length > 0 && (
+        <div className="mt-4 flex shrink-0 flex-col gap-2 sm:mt-0 sm:flex-row">
+          {bannerActions.map((bannerAction) => (
+            <Button
+              key={bannerAction.label}
+              variant={bannerAction.variant || "outline"}
+              className="w-full whitespace-nowrap sm:w-auto"
+              onClick={bannerAction.onClick}
+              disabled={bannerAction.disabled}
+            >
+              {bannerAction.label}
+            </Button>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -709,6 +727,8 @@ export function Overview({
             label={
               permanent
                 ? "Renovação"
+                : scenario.status === "expired"
+                  ? t("accessExpiredOn")
                 : scenario.status === "canceling" || scenario.status === "canceled"
                   ? "Acesso até"
                   : "Próxima renovação"
@@ -753,10 +773,12 @@ export function Overview({
           </div>
         )}
         <div className="mt-2 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row">
-          <Button size="lg" disabled={!canChange} onClick={onChange}>
-            {canChange ? "Alterar plano" : "Ver planos"}
-            <ArrowUpRight className="h-4 w-4" />
-          </Button>
+          {scenario.status !== "expired" && (
+            <Button size="lg" disabled={!canChange} onClick={onChange}>
+              {canChange ? "Alterar plano" : "Ver planos"}
+              <ArrowUpRight className="h-4 w-4" />
+            </Button>
+          )}
           {scenario.payment === "card" && !isScheduled(scenario.status) && (
             <Button size="lg" variant="outline" onClick={onPortal}>
               Gerenciar cobrança
@@ -974,6 +996,8 @@ export function PreviewView({
   scheduled,
   targetPriceCents,
   stale,
+  prepaidCreditCents,
+  renewalDateOverride,
 }: {
   scenario: PocScenario;
   tier: PocTier;
@@ -988,6 +1012,8 @@ export function PreviewView({
   scheduled?: boolean;
   targetPriceCents?: number | null;
   stale?: boolean;
+  prepaidCreditCents?: number | null;
+  renewalDateOverride?: string | null;
 }) {
   if (!target) return null;
   const previewStale = stale || scenario.status === "stale";
@@ -1039,9 +1065,12 @@ export function PreviewView({
               {!isScheduledChange && (
                 <PreviewStat label="Você paga agora" value={money(dueNow)} />
               )}
+              {prepaidCreditCents != null && (
+                <PreviewStat label={t("accessPrepaidCredit")} value={money(prepaidCreditCents)} />
+              )}
               <PreviewStat
                 label={isScheduledChange ? "Alteração em" : "Próxima renovação"}
-                value={scenario.renewalDate || "17/09/2026"}
+                value={renewalDateOverride || scenario.renewalDate || "17/09/2026"}
               />
             </div>
             {isScheduledChange ? (
@@ -1057,7 +1086,8 @@ export function PreviewView({
             ) : (
               <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
                 {scenario.payment === "card"
-                  ? "Na Stripe, você revisará o valor final e confirmará a alteração."
+                  ? prepaidCreditCents != null ? t("accessPrepaidCardReview")
+                    : "Na Stripe, você revisará o valor final e confirmará a alteração."
                   : "Nesta simulação, o plano só muda depois da confirmação do Pix."}
               </p>
             )}
