@@ -124,7 +124,7 @@ test("Pix remains outside the active Stripe plan-change flow", () => {
 test("expired canceled card access offers Pix only after expiry, using the existing renewal selector", () => {
   assert.match(app, /const isCardSubscription = access\.subscription\?\.paymentMethod === "card"/);
   assert.match(app, /const canSwitchCardToPix = status === "expired"[\s\S]{0,160}access\.subscription\?\.paymentMethod === "card"[\s\S]{0,100}access\.renewal\?\.pix/);
-  assert.match(app, /pixPlanSelectionOpen && \(canChangeExpiredPix \|\| canSwitchCardToPix\)/);
+  assert.match(app, /pixPlanSelectionOpen && \(canSelectEarlyPixRenewal \|\| canChangeExpiredPix \|\| canSwitchCardToPix\)/);
   assert.match(app, /: canSwitchCardToPix\s*\? \{[\s\S]{0,180}setPixPlanSelectionOpen\(true\)/);
 });
 

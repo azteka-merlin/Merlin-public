@@ -4624,8 +4624,10 @@ function AccessDetailsPoc({
   };
   const isRecurring = access.kind === "monthly" || access.kind === "semiannual" || access.kind === "annual";
   const isManualPixAccess = isRecurring && !isCardSubscription;
+  const canSelectEarlyPixRenewal = isManualPixAccess && status === "active"
+    && Boolean(access.renewal?.earlyPix) && !access.pixRenewal;
   const canRenewPix = (status === "expired" && Boolean(access.renewal?.pix) && !access.renewal?.card)
-    || (status === "active" && Boolean(access.renewal?.earlyPix));
+    || canSelectEarlyPixRenewal;
   const canChangeExpiredPix = status === "expired" && isManualPixAccess && !access.pixRenewal;
   const canChangeExpiredPixTransition = Boolean(canChangeExpiredPix && onPixTransitionPreview && onPixTransitionCreate
     && billing.plansEnabled && billing.billingEnabled && billing.signupEnabled);
@@ -4783,7 +4785,7 @@ function AccessDetailsPoc({
     }
   }
 
-  if (pixPlanSelectionOpen && (canChangeExpiredPix || canSwitchCardToPix)) {
+  if (pixPlanSelectionOpen && (canSelectEarlyPixRenewal || canChangeExpiredPix || canSwitchCardToPix)) {
     return (
       <ExpiredPixPlanSelector
         billing={billing}
@@ -5036,7 +5038,7 @@ function AccessDetailsPoc({
           body={access.renewal?.earlyPix
             ? t("accessPixRenewalEarlyBody").replace("{date}", renewal)
             : t("accessPixRenewalWaitingBody").replace("{date}", renewal)}
-          action={access.renewal?.earlyPix
+          action={canSelectEarlyPixRenewal
             ? { label: renewingPix ? t("pixCreating") : t("accessPixRenew"), onClick: () => setPixPlanSelectionOpen(true), disabled: renewingPix }
             : undefined}
         />
