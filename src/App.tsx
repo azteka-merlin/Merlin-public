@@ -43,6 +43,7 @@ type FlowMode =
   | "payment-status"
   | "billing-portal"
   | "verify"
+  | "checkout-processing"
   | "success"
   | "payment-result"
   | "pix";
@@ -1912,6 +1913,10 @@ function Plans({
     return undefined;
   }, [success?.licenseKey]);
 
+  useEffect(() => {
+    if (mode === "checkout-processing") focusResultPanel();
+  }, [mode]);
+
   function showSuccess(
     next: { title: string; licenseKey: string; recoveryPin?: string | null },
     options: { keepEmail?: boolean; email?: string } = {},
@@ -1984,8 +1989,8 @@ function Plans({
     if (checkout === "success") {
       const remembered = localStorage.getItem("merlin_checkout_email") || "";
       if (remembered) setForm((value) => ({ ...value, email: remembered }));
-      setAccessNotice(t("checkoutAccessNotice"));
-      setAccessOpen(true);
+      setAccessOpen(false);
+      setMode("checkout-processing");
       void pollCheckoutStatus(params.get("session_id"));
     } else if (checkout === "cancel") {
       setModal({
@@ -2328,7 +2333,12 @@ function Plans({
   }
 
   async function pollCheckoutStatus(sessionId: string | null) {
-    if (!sessionId) return;
+    if (!sessionId) {
+      setMode("payment-status");
+      setAccessNotice(t("checkoutVerifyAccessNotice"));
+      setAccessOpen(true);
+      return;
+    }
     for (let attempt = 0; attempt < 15; attempt += 1) {
       try {
         const payload = await fetch(
@@ -2345,6 +2355,14 @@ function Plans({
           });
           return;
         }
+        if (payload?.success !== false && payload.status === "completed" && payload.verificationRequired) {
+          const email = localStorage.getItem("merlin_checkout_email") || "";
+          setForm((value) => ({ ...value, email }));
+          setMode("payment-status");
+          setAccessNotice(t("checkoutVerifyAccessNotice"));
+          setAccessOpen(true);
+          return;
+        }
       } catch {
         /* webhook may still be processing */
       }
@@ -2352,6 +2370,7 @@ function Plans({
     }
     const email = localStorage.getItem("merlin_checkout_email") || "";
     setForm((value) => ({ ...value, email }));
+    setMode("payment-status");
     setAccessNotice(t("checkoutStillProcessingAccessNotice"));
     setAccessOpen(true);
   }
@@ -2982,6 +3001,12 @@ function Plans({
                       onPin={(recoveryPin) => setForm({ ...form, recoveryPin })}
                       onSubmit={(e) => submitSimple(e, "billing-portal")}
                     />
+                  )}
+                  {mode === "checkout-processing" && (
+                    <div className="py-8 text-center" role="status" aria-live="polite">
+                      <h3 className="text-2xl font-bold">{t("checkoutReceivedTitle")}</h3>
+                      <p className="mt-3 text-sm text-muted-foreground">{t("checkoutSuccessPending")}</p>
+                    </div>
                   )}
                   {mode === "success" && success && (
                     <SuccessPanel

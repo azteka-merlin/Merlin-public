@@ -22,6 +22,14 @@ test("Stripe checkout return preserves the license result anchor", () => {
   assert.match(app, /if \(!success\?\.licenseKey\) return undefined/);
 });
 
+test("Stripe return shows progress instead of opening login while awaiting the license", () => {
+  const checkoutReturn = app.slice(app.indexOf('if (checkout === "success")'), app.indexOf('} else if (checkout === "cancel")'));
+  assert.match(checkoutReturn, /setAccessOpen\(false\)/);
+  assert.match(checkoutReturn, /setMode\("checkout-processing"\)/);
+  assert.match(app, /mode === "checkout-processing" &&/);
+  assert.match(app, /if \(mode === "checkout-processing"\) focusResultPanel\(\)/);
+});
+
 test("launcher handoff is exchanged before loading Meu acesso", () => {
   assert.match(app, /window\.location\.hash\.replace\(\/\^#\/, ""\)/);
   assert.match(app, /handoffParams\.get\("handoff"\)/);

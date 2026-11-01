@@ -19,9 +19,12 @@ regras ou resultados simulados.
 | Cancelar agendamento | Cancela somente a mudanca de plano | `plan-change/cancel` |
 | Substituir agendamento | Confirma, cancela a mudanca atual e abre o seletor | cancelamento seguido de nova criacao |
 | Portal Stripe | Abre em nova guia para cartao, faturas e cancelamento | `billing-portal` |
-| Pix ativo, fora dos ultimos sete dias | Mantem leitura; nao permite troca ativa de plano | contrato atual |
-| Pix nos ultimos sete dias | Escolhe proximo tier/periodo e paga antecipado; validade estendida na confirmacao | `access/session/renewal/pix` |
-| Pix vencido | Escolhe tier/periodo e reativa a mesma chave na confirmacao | mesma rota protegida |
+| Pix ativo, upgrade de tier no mesmo periodo | Preview real com diferenca proporcional; na confirmacao, aplica o tier e preserva o vencimento | `access/session/pix-plan-transition/preview` e `access/session/pix-plan-transition` |
+| Pix ativo, periodo mais longo | Preview real com credito Pix nao usado, inclusive se o tier escolhido for menor; na confirmacao, inicia o novo periodo | mesmo contrato de transicao Pix |
+| Pix ativo para cartao | Checkout Stripe hospedado; troca apenas de metodo preserva vencimento, upgrade usa credito Pix. Primeira migracao exige mais de 24h30 restantes | mesmo contrato de transicao Pix |
+| Pix ativo, tier inferior sem alongamento ou periodo menor fora dos ultimos sete dias | Informa que a troca ainda nao esta disponivel | preview da API |
+| Pix nos ultimos sete dias, tier inferior sem alongamento ou periodo menor | Paga antecipadamente o periodo seguinte; plano atual fica ate o vencimento | transicao Pix ou `access/session/renewal/pix` conforme o fluxo |
+| Pix vencido | Escolhe tier/periodo e reativa a mesma chave na confirmacao | transicao Pix ou `access/session/renewal/pix` conforme o fluxo |
 | Vitalicio, teste e manual nao Pix | Mantem leitura; nao inventa troca de plano | contrato atual |
 | Flag de planos desligada | Mantem leitura; seletor fica indisponivel | `plansEnabled=false` |
 | Erro de preview ou dado desatualizado | Mantem a licenca atual e retorna ao seletor com erro da API | resposta da API |

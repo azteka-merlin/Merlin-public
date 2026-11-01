@@ -177,6 +177,8 @@ export const en: Dict = {
     "Payment received. Your key is still being processed. Check payment with the same e-mail in a moment.",
   checkoutStillProcessingAccessNotice:
     "Payment received. If the key is still processing, confirm your e-mail here and check again in a moment.",
+  checkoutVerifyAccessNotice:
+    "Payment confirmed. Verify your e-mail to securely retrieve your access key.",
   paymentApprovedTitle: "Payment approved",
   paymentApprovedText: "Your access is already available.",
   paymentProcessingTitle: "Payment processing",
@@ -525,6 +527,8 @@ export const ptbr: Dict = {
     "Pagamento recebido. Sua chave ainda está sendo processada. Consulte o pagamento usando o mesmo e-mail em alguns instantes.",
   checkoutStillProcessingAccessNotice:
     "Pagamento recebido. Se a chave ainda estiver processando, confirme seu e-mail aqui e consulte novamente em alguns instantes.",
+  checkoutVerifyAccessNotice:
+    "Pagamento confirmado. Confirme seu e-mail para recuperar sua chave de acesso com segurança.",
   paymentApprovedTitle: "Pagamento aprovado",
   paymentApprovedText: "Seu acesso já está liberado.",
   paymentProcessingTitle: "Pagamento em processamento",

@@ -25,7 +25,9 @@ Este documento registra os contratos que a tela publica precisa preservar. Ele e
 - Stripe retorna para `/download?checkout=success&session_id=...`. O retorno deve abrir o fluxo de `Meu acesso` enquanto o checkout é reconciliado e, quando a licença estiver disponível, fechar o modal e focar o painel `#resultado-acesso` que exibe a licença. Esse foco precisa acontecer depois da expansão visual do painel; não depender de um único scroll imediato.
 - Reutilizacao de checkout deve considerar periodo, tier e eventual licenca de reativacao.
 - Upgrade/downgrade de cartão já é oferecido em `Meu acesso`, com preview e decisão de timing na API. Downgrade de tier ou redução de duração fica para o fim do período pago; demais mudanças elegíveis exigem confirmação na Stripe antes da liberação.
-- Pix não participa da troca ativa de assinatura Stripe. Nos últimos sete dias, pode antecipar a próxima renovação; o pagamento estende imediatamente a mesma licença e mantém o plano atual até a fronteira. Após vencimento, reativa a mesma chave no plano escolhido.
+- Pix ativo pode subir de tier no mesmo período ou passar a um período mais longo a qualquer momento pelo preview de troca da API. O crédito proporcional do Pix ainda não usado reduz o valor devido: no mesmo período, o upgrade preserva o vencimento; ao alongar o período, o novo ciclo começa na confirmação do pagamento.
+- Redução de tier sem alongar o período, ou redução do próprio período no Pix, só pode ser solicitada nos últimos sete dias. O pagamento antecipado cobre o próximo período, enquanto o plano atual permanece até o vencimento. Após vencimento, a pessoa escolhe tier e período para reativar a mesma chave.
+- Pix ativo também pode migrar para cartão por Checkout Stripe hospedado. A troca apenas de método preserva o vencimento Pix e coleta o cartão sem nova cobrança nesse período; um upgrade usa o crédito Pix não consumido. A API bloqueia a abertura dessa primeira migração nas últimas 24h30 antes do vencimento.
 
 ## Ativacao Premium
 
