@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Check, ChevronDown, Clock, Crown, Menu, X, Zap } from "lucide-react";
+import { Check, ChevronDown, CircleAlert, Clock, Crown, Menu, X, Zap } from "lucide-react";
 import { FaTiktok, FaTwitch, FaYoutube } from "react-icons/fa6";
 import { dictionaries, initialLocale, type Locale } from "./i18n";
 import { CatalogPage } from "./CatalogPage";
+import { AccountPremiumTabs } from "./AccountPremiumTabs";
 import { buildResultAnchorUrl, focusResultPanelAfterRender } from "./result-anchor";
 import {
   ChangeView,
@@ -1199,6 +1200,7 @@ const PLAN_TIERS: Array<{
     textKey: string;
     icon: "check" | "clock" | "zap";
     tooltipKey?: string;
+    tooltipTitleKey?: string;
   }>;
 }> = [
   {
@@ -1216,7 +1218,7 @@ const PLAN_TIERS: Array<{
         tooltipKey: "tierBronzeActivationsTip",
       },
       { textKey: "tierBronzeCooldown", icon: "clock" },
-      { textKey: "tierBronzeReleases", icon: "clock" },
+      { textKey: "tierBronzeReleases", icon: "clock", tooltipKey: "tierBronzeReleasesTip", tooltipTitleKey: "tierReleasesTipTitle" },
     ],
   },
   {
@@ -1234,7 +1236,7 @@ const PLAN_TIERS: Array<{
         tooltipKey: "tierPrataActivationsTip",
       },
       { textKey: "tierPrataCooldown", icon: "clock" },
-      { textKey: "tierPrataReleases", icon: "clock" },
+      { textKey: "tierPrataReleases", icon: "clock", tooltipKey: "tierPrataReleasesTip", tooltipTitleKey: "tierReleasesTipTitle" },
     ],
   },
   {
@@ -1252,7 +1254,8 @@ const PLAN_TIERS: Array<{
         icon: "clock",
         tooltipKey: "tierOuroCooldownTip",
       },
-      { textKey: "tierOuroReleases", icon: "zap" },
+      { textKey: "tierOuroReleases", icon: "zap", tooltipKey: "tierOuroReleasesTip", tooltipTitleKey: "tierOuroReleasesTipTitle" },
+      { textKey: "tierOuroDownloadTab", icon: "check", tooltipKey: "tierOuroDownloadTabTip", tooltipTitleKey: "tierOuroDownloadTabTipTitle" },
     ],
   },
 ];
@@ -1275,18 +1278,33 @@ function PlanBenefitIcon({ type }: { type: "check" | "clock" | "zap" }) {
   );
 }
 
-function BenefitInfo({ text }: { text: string }) {
+function BenefitInfo({ text, title }: { text: string; title?: string }) {
   const [open, setOpen] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const positionNewTooltip = (button: HTMLButtonElement) => {
+    if (!title) return;
+    if (window.innerWidth >= 640) { setOffset(0); return; }
+    const center = button.getBoundingClientRect().left + button.offsetWidth / 2;
+    const left = center - 112;
+    setOffset(Math.max(8 - left, Math.min(0, window.innerWidth - 8 - (left + 224))));
+  };
   return (
     <span className="relative inline-flex align-middle">
       <button
         type="button"
         aria-label="Mais informações"
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
-        onMouseEnter={() => setOpen(true)}
+        onClick={(event) => {
+          positionNewTooltip(event.currentTarget);
+          if (title) {
+            setOpen(true);
+          } else {
+            setOpen((value) => !value);
+          }
+        }}
+        onMouseEnter={(event) => { positionNewTooltip(event.currentTarget); setOpen(true); }}
         onMouseLeave={() => setOpen(false)}
-        onFocus={() => setOpen(true)}
+        onFocus={(event) => { positionNewTooltip(event.currentTarget); setOpen(true); }}
         onBlur={() => setOpen(false)}
         className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/20 text-[10px] leading-none text-muted-foreground transition-colors hover:border-primary/60 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
@@ -1294,11 +1312,13 @@ function BenefitInfo({ text }: { text: string }) {
       </button>
       <span
         role="tooltip"
+        style={title && offset ? { marginLeft: offset } : undefined}
         className={cx(
-          "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-56 -translate-x-1/2 rounded-lg border border-white/20 bg-[oklch(0.22_0.018_283)] px-3 py-2 text-xs leading-relaxed text-muted-foreground shadow-lg shadow-black/40 transition-all duration-200",
+          "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-56 -translate-x-1/2 whitespace-normal rounded-lg border border-white/20 bg-[oklch(0.22_0.018_283)] px-3 py-2 text-xs leading-relaxed text-muted-foreground shadow-lg shadow-black/40 transition-all duration-200",
           open ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0",
         )}
       >
+        {title && <strong className="mb-1 block font-semibold text-foreground">{title}</strong>}
         {text}
       </span>
     </span>
@@ -1520,7 +1540,10 @@ function TierPlanCards({
                 )}
               </div>
               <ul className="mb-10 mt-8 flex flex-col gap-4 border-t border-border pt-8 text-sm">
-                {plan.benefits.map((benefit) => (
+                {plan.benefits.map((benefit) => {
+                  const label = t(benefit.textKey);
+                  const lastSpace = label.lastIndexOf(" ");
+                  return (
                   <li key={benefit.textKey} className="flex gap-2.5">
                     <PlanBenefitIcon type={benefit.icon} />
                     <span
@@ -1531,13 +1554,24 @@ function TierPlanCards({
                           : "text-foreground/90",
                       )}
                     >
-                      {t(benefit.textKey)}
-                      {benefit.tooltipKey && (
-                        <BenefitInfo text={t(benefit.tooltipKey)} />
+                      {benefit.tooltipTitleKey && benefit.tooltipKey && lastSpace >= 0 ? (
+                        <>
+                          {label.slice(0, lastSpace)}{" "}
+                          <span className="whitespace-nowrap">
+                            {label.slice(lastSpace + 1)}
+                            <BenefitInfo text={t(benefit.tooltipKey)} title={t(benefit.tooltipTitleKey)} />
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          {label}
+                          {benefit.tooltipKey && <BenefitInfo text={t(benefit.tooltipKey)} />}
+                        </>
                       )}
                     </span>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
               <button
                 type="button"
@@ -1559,6 +1593,13 @@ function TierPlanCards({
             </div>
           );
         })}
+      </div>
+      <div className="mt-6 flex gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+        <CircleAlert aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+        <div>
+          <p className="font-semibold text-foreground">{t("tierAvailabilityTitle")}</p>
+          <p>{t("tierAvailabilityDescription")}</p>
+        </div>
       </div>
       <div aria-live="polite" className="mt-8 flex min-h-6 justify-center">
         {selectedTier && (
@@ -5913,6 +5954,7 @@ function MyAccessPage({
             </div>
           </div>
         )}
+        <AccountPremiumTabs locale={locale} csrfToken={csrfToken} onSignOut={() => { void signOut(); }} loggingOut={loggingOut}>
         <AccessDetailsPoc
           access={access.access}
           billing={billing}
@@ -5990,6 +6032,7 @@ function MyAccessPage({
           }}
           onPixTransitionCreate={startPixTransition}
         />
+        </AccountPremiumTabs>
       </main>
     </div>
   );
