@@ -2,6 +2,7 @@ export type PremiumWish = {
   appId: string;
   name: string;
   coverUrl: string;
+  sharedCoverUrl?: string;
   comingSoon: boolean;
   email: string;
   phone: string | null;
@@ -31,6 +32,7 @@ export function parsePremiumWishes(value: unknown): PremiumWish[] {
       appId,
       name: typeof row.name === "string" && row.name.trim() ? row.name : appId,
       coverUrl: typeof row.coverUrl === "string" && /^https?:\/\//i.test(row.coverUrl) ? row.coverUrl : "",
+      ...(row.sharedCoverUrl === "/api/public/game-images/" + appId ? { sharedCoverUrl: row.sharedCoverUrl } : {}),
       comingSoon: row.comingSoon === 1 || row.comingSoon === true,
       email: typeof row.email === "string" ? row.email : "",
       phone: typeof row.phone === "string" && row.phone ? row.phone : null,

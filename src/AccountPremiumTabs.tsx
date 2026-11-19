@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Heart, LoaderCircle, LogOut, Trash2 } from "lucide-react";
 import { Button, cx } from "./ui";
+import { GameImage } from "./GameImage";
 import { wishlistCopy, type WishlistCopy } from "./wishlist-copy";
 import { getPremiumWishes, removePremiumWish, WishlistRequestError, type PremiumWish } from "./wishlist-session";
 import type { Locale } from "./i18n";
@@ -142,7 +143,7 @@ export function PremiumWishlist({ csrfToken, copy }: { csrfToken: string; copy: 
         {wishes.map((wish) => <li key={wish.appId} className="flex flex-wrap items-center gap-4 py-5 sm:flex-nowrap">
           <div aria-hidden="true" className="relative flex h-16 w-28 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary">
             <Heart className="h-5 w-5 text-muted-foreground" />
-            {wish.coverUrl && <img src={wish.coverUrl} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />}
+            <GameImage appId={wish.appId} sharedCoverUrl={wish.sharedCoverUrl} coverUrl={wish.coverUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
           </div>
           <div className="min-w-0 flex-1">
             <h3 className="break-words text-sm font-semibold">{wish.name}</h3>

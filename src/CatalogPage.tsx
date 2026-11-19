@@ -4,23 +4,13 @@ import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import { QueryClient, QueryClientProvider, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, LoaderCircle, Search } from "lucide-react";
 import { FaSteam } from "react-icons/fa";
+import { GameImage } from "./GameImage";
 
 type TFn = (key: string) => string;
 type Category = "premium" | "standard" | "reviewing";
-type CatalogGame = { appId: string; name: string; coverUrl: string | null; fallbackCoverUrls: string[]; category: Category; availableInMerlin: boolean };
+type CatalogGame = { appId: string; name: string; coverUrl: string | null; sharedCoverUrl?: string; fallbackCoverUrls: string[]; category: Category; availableInMerlin: boolean };
 type CatalogResponse = { games: CatalogGame[]; hasMore: boolean };
 const client = new QueryClient({ defaultOptions: { queries: { staleTime: 15_000, retry: 1 } } });
-
-function loadNextCover(image: HTMLImageElement, fallbackCoverUrls: string[]) {
-  const nextIndex = Number(image.dataset.fallbackIndex || "0");
-  const nextUrl = fallbackCoverUrls[nextIndex];
-  if (nextUrl) {
-    image.dataset.fallbackIndex = String(nextIndex + 1);
-    image.src = nextUrl;
-    return;
-  }
-  image.remove();
-}
 
 function CatalogContent({ t }: { t: TFn }) {
   const queryClient = useQueryClient();
@@ -89,7 +79,7 @@ function CatalogContent({ t }: { t: TFn }) {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {games.map((game) => <article key={game.appId} className="min-w-0 rounded-md border border-border bg-card p-3">
           <div className="aspect-[231/87] w-full overflow-hidden rounded-md bg-secondary">
-            {game.coverUrl ? <img src={game.coverUrl} alt="" className="h-full w-full object-contain" loading="lazy" onError={(event) => loadNextCover(event.currentTarget, game.fallbackCoverUrls)} /> : <div className="h-full w-full bg-secondary" />}
+            <GameImage appId={game.appId} sharedCoverUrl={game.sharedCoverUrl} coverUrl={game.coverUrl} fallbackCoverUrls={game.fallbackCoverUrls} alt="" className="h-full w-full object-contain" />
           </div>
           <div className="mt-3 flex items-start gap-2">
             <h2 className="min-w-0 flex-1 line-clamp-2 text-sm font-medium">{game.name}</h2>
